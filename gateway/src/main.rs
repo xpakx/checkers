@@ -1,4 +1,4 @@
-use axum::{Router, routing::get, extract::{Request, State}, body::{Body, to_bytes}};
+use axum::{Router, routing::get, extract::{Request, State}, body::{Body, to_bytes, Bytes}, response::{Response, IntoResponse}, http::{StatusCode, HeaderMap}};
 use reqwest::Client;
 use tracing::{info, debug};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -39,7 +39,7 @@ async fn index() -> String {
     return String::from("Hello, world!")
 }
 
-async fn game(State(client): State<Client>, req: Request<Body>) -> String {
+async fn game(State(client): State<Client>, req: Request<Body>) -> impl IntoResponse {
     debug!("{} matched against 'game/**'.", req.uri());
     let target = "http://localhost";
     let target_port = 8081;
@@ -54,7 +54,50 @@ async fn game(State(client): State<Client>, req: Request<Body>) -> String {
         .send()
         .await;
 
-    let result = response.unwrap().text().await.unwrap();
+    let result = ServiceResult::from(response).await;
 
-    return String::from(result)
+    return result
+}
+
+enum ServiceResult {
+    Response(ServiceResponse),
+    Error(String),
+}
+
+struct ServiceResponse {
+    status: StatusCode,
+    headers: HeaderMap,
+    body: Bytes,
+}
+
+impl ServiceResult {
+    async fn from(request_result: Result<reqwest::Response, reqwest::Error>) -> ServiceResult {
+        match request_result {
+            Err(err) => {
+                ServiceResult::Error(err.to_string())
+            },
+            Ok(response) => {
+                ServiceResult::Response(ServiceResponse::from(response).await)
+            },
+        }
+    }
+}
+
+impl ServiceResponse {
+    async fn from(response: reqwest::Response) -> ServiceResponse {
+        let status = response.status();
+        let headers = response.headers().clone();
+        let body = response.bytes().await.unwrap();
+
+        ServiceResponse { status, headers, body }
+    }
+}
+
+impl IntoResponse for ServiceResult {
+    fn into_response(self) -> Response {
+        match self {
+            ServiceResult::Error(err) => (StatusCode::INTERNAL_SERVER_ERROR, err).into_response(),
+            ServiceResult::Response(resp) => (resp.status, resp.headers, resp.body).into_response(),
+        }
+    }
 }
