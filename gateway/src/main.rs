@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use axum::{Router, routing::get, extract::{Request, State}, body::{Body, to_bytes, Bytes}, response::{Response, IntoResponse}, http::{StatusCode, HeaderMap}};
 use reqwest::Client;
 use tracing::{info, debug};
@@ -16,9 +18,15 @@ async fn main() {
     let client = reqwest::Client::new();
     info!("Created reqwest client.");
 
+    info!("Configuring services.");
+    let mut services: Vec<ServiceConfig> = vec![];
+    services.push(ServiceConfig { path: "/game", host: "http://localhost", port: 8081 });
+
+    let state = AppState { client, services };
+
     let app = Router::new()
         .route("/game/*path", get(handle))
-        .with_state(client);
+        .with_state(Arc::new(state));
 
     info!("Initializing router…");
     let host = "0.0.0.0";
@@ -33,12 +41,13 @@ async fn main() {
         .unwrap();
 }
 
-async fn handle(State(client): State<Client>, req: Request<Body>) -> impl IntoResponse {
-    let service = ServiceConfig { path: "/game", host: "http://localhost", port: 8081 };
+async fn handle(State(state): State<Arc<AppState>>, req: Request<Body>) -> impl IntoResponse {
+    let service = &state.services[0];
+    let client = &state.client;
     handle_service(client, req, service).await
 }
 
-async fn handle_service(client: Client, req: Request<Body>, service: ServiceConfig) -> impl IntoResponse {
+async fn handle_service(client: &Client, req: Request<Body>, service: &ServiceConfig) -> impl IntoResponse {
     debug!("'{}' matched against '{}'.", req.uri(), service.path);
     let uri = format!("{}:{}{}", service.host, service.port, req.uri().path());
     debug!("Calling {}.", uri);
@@ -97,6 +106,11 @@ impl IntoResponse for ServiceResult {
             ServiceResult::Response(resp) => (resp.status, resp.headers, resp.body).into_response(),
         }
     }
+}
+
+struct AppState {
+    client: reqwest::Client,
+    services: Vec<ServiceConfig>
 }
 
 struct ServiceConfig {
