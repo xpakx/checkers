@@ -20,12 +20,18 @@ async fn main() {
 
     info!("Configuring services.");
     let mut services: Vec<ServiceConfig> = vec![];
-    services.push(ServiceConfig { path: "/game", host: "http://localhost", port: 8081 });
+    services.push(ServiceConfig { path: "/game", host: "http://localhost", port: 8080 });
+    services.push(ServiceConfig { path: "/authenticate", host: "http://localhost", port: 8080 });
+    services.push(ServiceConfig { path: "/register", host: "http://localhost", port: 8080 });
+
+    services.push(ServiceConfig { path: "/app", host: "http://localhost", port: 8081 });
+    services.push(ServiceConfig { path: "/topic", host: "http://localhost", port: 8081 });
+    services.push(ServiceConfig { path: "/play", host: "http://localhost", port: 8081 });
 
     let state = AppState { client, services };
 
     let app = Router::new()
-        .route("/game/*path", get(handle))
+        .route("/*path", get(handle))
         .with_state(Arc::new(state));
 
     info!("Initializing router…");
@@ -41,14 +47,19 @@ async fn main() {
         .unwrap();
 }
 
-async fn handle(State(state): State<Arc<AppState>>, req: Request<Body>) -> impl IntoResponse {
-    let service = &state.services[0];
+async fn handle(State(state): State<Arc<AppState>>, req: Request<Body>) -> Response {
+    let Some(service) = state.services.iter().find(|serv| req.uri().path().starts_with(&serv.path)) else {
+        debug!("No match for '{}'.", req.uri());
+        return (StatusCode::NOT_FOUND, "Not found").into_response();
+    };
     let client = &state.client;
-    handle_service(client, req, service).await
+    handle_service(client, req, service)
+        .await
+        .into_response()
 }
 
 async fn handle_service(client: &Client, req: Request<Body>, service: &ServiceConfig) -> impl IntoResponse {
-    debug!("'{}' matched against '{}'.", req.uri(), service.path);
+    debug!("'{}' matched against '{}/**'.", req.uri(), service.path);
     let uri = format!("{}:{}{}", service.host, service.port, req.uri().path());
     debug!("Calling {}.", uri);
     let (parts, body) = req.into_parts();
