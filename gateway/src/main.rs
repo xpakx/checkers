@@ -17,8 +17,7 @@ async fn main() {
     info!("Created reqwest client.");
 
     let app = Router::new()
-        .route("/", get(index))
-        .route("/game/*path", get(game))
+        .route("/game/*path", get(handle))
         .with_state(client);
 
     info!("Initializing router…");
@@ -34,16 +33,14 @@ async fn main() {
         .unwrap();
 }
 
-async fn index() -> String {
-    debug!("Index requested.");
-    return String::from("Hello, world!")
+async fn handle(State(client): State<Client>, req: Request<Body>) -> impl IntoResponse {
+    let service = ServiceConfig { path: "/game", host: "http://localhost", port: 8081 };
+    handle_service(client, req, service).await
 }
 
-async fn game(State(client): State<Client>, req: Request<Body>) -> impl IntoResponse {
-    debug!("{} matched against 'game/**'.", req.uri());
-    let target = "http://localhost";
-    let target_port = 8081;
-    let uri = format!("{}:{}{}", target, target_port, req.uri().path());
+async fn handle_service(client: Client, req: Request<Body>, service: ServiceConfig) -> impl IntoResponse {
+    debug!("'{}' matched against '{}'.", req.uri(), service.path);
+    let uri = format!("{}:{}{}", service.host, service.port, req.uri().path());
     debug!("Calling {}.", uri);
     let (parts, body) = req.into_parts();
 
@@ -100,4 +97,10 @@ impl IntoResponse for ServiceResult {
             ServiceResult::Response(resp) => (resp.status, resp.headers, resp.body).into_response(),
         }
     }
+}
+
+struct ServiceConfig {
+    path: &'static str,
+    host: &'static str,
+    port: usize,
 }
