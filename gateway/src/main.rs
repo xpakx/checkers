@@ -1,7 +1,8 @@
-use std::sync::Arc;
+use std::{fs::File, io::Read, sync::Arc};
 
 use axum::{Router, routing::get, extract::{Request, State}, body::{Body, to_bytes, Bytes}, response::{Response, IntoResponse}, http::{StatusCode, HeaderMap}};
 use reqwest::Client;
+use serde::{Deserialize, Serialize};
 use tracing::{info, debug};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -19,14 +20,14 @@ async fn main() {
     info!("Created reqwest client.");
 
     info!("Configuring services.");
-    let mut services: Vec<ServiceConfig> = vec![];
-    services.push(ServiceConfig { path: "/game", host: "http://localhost", port: 8080 });
-    services.push(ServiceConfig { path: "/authenticate", host: "http://localhost", port: 8080 });
-    services.push(ServiceConfig { path: "/register", host: "http://localhost", port: 8080 });
+    let mut services: Vec<ServiceConfig> = load_config("config.yaml");
+    services.push(ServiceConfig { path: String::from("/game"), host: String::from("http://localhost"), port: 8080 });
+    services.push(ServiceConfig { path: String::from("/authenticate"), host: String::from("http://localhost"), port: 8080 });
+    services.push(ServiceConfig { path: String::from("/register"), host: String::from("http://localhost"), port: 8080 });
 
-    services.push(ServiceConfig { path: "/app", host: "http://localhost", port: 8081 });
-    services.push(ServiceConfig { path: "/topic", host: "http://localhost", port: 8081 });
-    services.push(ServiceConfig { path: "/play", host: "http://localhost", port: 8081 });
+    services.push(ServiceConfig { path: String::from("/app"), host: String::from("http://localhost"), port: 8080 });
+    services.push(ServiceConfig { path: String::from("/topic"), host: String::from("http://localhost"), port: 8080 });
+    services.push(ServiceConfig { path: String::from("/play"), host: String::from("http://localhost"), port: 8080 });
 
     let state = AppState { client, services };
 
@@ -124,8 +125,28 @@ struct AppState {
     services: Vec<ServiceConfig>
 }
 
+#[derive(Deserialize, Serialize)]
 struct ServiceConfig {
-    path: &'static str,
-    host: &'static str,
+    path: String,
+    host: String,
     port: usize,
+}
+
+#[derive(Deserialize, Serialize)]
+struct YAMLConfig {
+    services: Vec<ServiceConfig>,
+}
+
+fn load_config(path: &str) -> Vec<ServiceConfig> {
+    debug!("Reading services from yaml file…");
+    let file = File::open(path);
+    let Ok(mut file) = file else {
+        debug!("No yaml configuration found.");
+        return vec![];
+    };
+    let mut content = String::new();
+    file.read_to_string(&mut content).unwrap();
+    debug!("Deserializing…");
+    let config: YAMLConfig = serde_yaml::from_str(&content).unwrap();
+    config.services
 }

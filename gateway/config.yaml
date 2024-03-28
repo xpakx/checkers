@@ -1,0 +1,4 @@
+services:
+    - path: "/test"
+      host: "http://localhost"
+      port: 8082
