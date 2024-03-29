@@ -1,10 +1,12 @@
+use core::fmt;
 use std::sync::Arc;
 
-use axum::{extract::State, response::IntoResponse, routing::post, Form, Router};
+use axum::{async_trait, extract::{rejection::FormRejection, FromRequest, Request, State}, http::StatusCode, response::{IntoResponse, Response}, routing::post, Form, Router};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-use serde::{Serialize, Deserialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use validator::Validate;
 
 #[tokio::main]
 async fn main() {
@@ -51,10 +53,8 @@ async fn main() {
         .unwrap();
 }
 
-async fn register(State(state): State<Arc<AppState>>, Form(user): Form<UserRequest>) -> impl IntoResponse {
+async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): ValidatedForm<UserRequest>) -> impl IntoResponse {
     info!("Creating new user requested…");
-
-    // TODO: validation
 
     debug!("Trying to add user {:?} to db...", user.username);
     let query_result =
@@ -80,15 +80,94 @@ async fn register(State(state): State<Arc<AppState>>, Form(user): Form<UserReque
     return "Hello world"
 }
 
-
 #[allow(dead_code)]
 struct AppState {
     db: PgPool,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Validate)]
 pub struct UserRequest {
+    #[validate(
+        length(min = 5, max=15, message = "Username length must be between 5 and 15"),
+        required(message = "Username cannot be empty")
+    )]
     username: Option<String>,
+
+    #[validate(
+        required(message = "Password cannot be empty"),
+        must_match(other = "password_re", message="Passwords don't match!")
+    )]
     password: Option<String>,
     password_re: Option<String>,
+}
+
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ValidatedForm<T>(pub T);
+
+#[async_trait]
+impl<T, S> FromRequest<S> for ValidatedForm<T>
+where
+    T: DeserializeOwned + Validate,
+    S: Send + Sync,
+    Form<T>: FromRequest<S, Rejection = FormRejection>,
+{
+    type Rejection = ValidationError;
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        let Form(value) = Form::<T>::from_request(req, state).await?;
+        value.validate()?;
+        Ok(ValidatedForm(value))
+    }
+}
+
+#[derive(Debug)]
+pub enum ValidationError {
+    ValidationError(validator::ValidationErrors),
+    AxumFormRejection(FormRejection),
+}
+
+impl From<validator::ValidationErrors> for ValidationError {
+    fn from(error: validator::ValidationErrors) -> Self {
+        ValidationError::ValidationError(error)
+    }
+}
+
+impl From<FormRejection> for ValidationError {
+    fn from(error: FormRejection) -> Self {
+        ValidationError::AxumFormRejection(error)
+    }
+}
+
+impl ValidationError {
+    fn to_string(self) -> String {
+        // TODO
+        match self {
+            ValidationError::ValidationError(err) => {
+                format!("Validation Error: {}", err)
+            }
+            ValidationError::AxumFormRejection(err) => {
+                format!("Axum Form Rejection: {:?}", err)
+            }
+        }
+    }
+}
+
+impl std::fmt::Display for ValidationError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.to_string())
+    }
+}
+
+impl IntoResponse for ValidationError {
+    fn into_response(self) -> Response {
+        // TODO
+        match self {
+            ValidationError::ValidationError(_) => {
+                let message = format!("Input validation error: [{self}]");
+                (StatusCode::BAD_REQUEST, message)
+            }
+            ValidationError::AxumFormRejection(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+        }
+        .into_response()
+    }
 }
