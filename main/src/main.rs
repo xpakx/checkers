@@ -2,6 +2,7 @@ use core::fmt;
 use std::sync::Arc;
 
 use axum::{async_trait, extract::{rejection::FormRejection, FromRequest, Request, State}, http::StatusCode, response::{IntoResponse, Response}, routing::post, Form, Router};
+use bcrypt::hash;
 use sqlx::{postgres::{PgPoolOptions, PgQueryResult}, PgPool};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -56,7 +57,7 @@ async fn main() {
 async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): ValidatedForm<UserRequest>) -> Response {
     info!("Creating new user requested…");
     let username = user.username.unwrap();
-    let password = user.password.unwrap(); // TODO: hashing password
+    let password = hash(user.password.unwrap(), 10).unwrap();
 
     debug!("Trying to add user {} to db...", username);
     let query_result = save_user(&state.db, &username, &password).await;
