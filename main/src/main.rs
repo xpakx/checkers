@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use axum::{Router, routing::get, response::IntoResponse};
+use axum::{extract::State, response::IntoResponse, routing::post, Form, Router};
 use sqlx::{postgres::PgPoolOptions, PgPool};
-use tracing::info;
+use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use serde::{Serialize, Deserialize};
 
 #[tokio::main]
 async fn main() {
@@ -34,7 +35,7 @@ async fn main() {
     let state = AppState { db: pool };
 
     let app = Router::new()
-        .route("/authenticate", get(handle))
+        .route("/authenticate", post(register))
         .with_state(Arc::new(state));
 
     info!("Initializing router…");
@@ -50,7 +51,32 @@ async fn main() {
         .unwrap();
 }
 
-async fn handle() -> impl IntoResponse {
+async fn register(State(state): State<Arc<AppState>>, Form(user): Form<UserRequest>) -> impl IntoResponse {
+    info!("Creating new user requested…");
+
+    // TODO: validation
+
+    debug!("Trying to add user {:?} to db...", user.username);
+    let query_result =
+        sqlx::query("INSERT INTO account (username, password) VALUES ($1, $2)")
+        .bind(&user.username)
+        .bind(&user.password) // TODO: hashing password
+        .execute(&state.db)
+        .await
+        .map_err(|err: sqlx::Error| err.to_string());
+
+    if let Err(err) = query_result {
+        debug!("cannot add user to db!");
+        if err.contains("duplicate key") && err.contains("username") {
+            // TODO
+        }
+        if !err.contains("duplicate key") {
+            // TODO
+        }
+        debug!(err);
+    }
+
+    info!("User {:?} succesfully created.", user.username);
     return "Hello world"
 }
 
@@ -58,4 +84,11 @@ async fn handle() -> impl IntoResponse {
 #[allow(dead_code)]
 struct AppState {
     db: PgPool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UserRequest {
+    username: Option<String>,
+    password: Option<String>,
+    password_re: Option<String>,
 }
