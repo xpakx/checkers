@@ -55,11 +55,12 @@ async fn main() {
 
 async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): ValidatedForm<UserRequest>) -> impl IntoResponse {
     info!("Creating new user requested…");
+    let username = user.username.unwrap();
 
-    debug!("Trying to add user {:?} to db...", user.username);
+    debug!("Trying to add user {} to db...", username);
     let query_result =
         sqlx::query("INSERT INTO account (username, password) VALUES ($1, $2)")
-        .bind(&user.username)
+        .bind(&username)
         .bind(&user.password) // TODO: hashing password
         .execute(&state.db)
         .await
@@ -76,7 +77,7 @@ async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): Valid
         debug!(err);
     }
 
-    info!("User {:?} succesfully created.", user.username);
+    info!("User {} succesfully created.", username);
     return "Hello world"
 }
 
@@ -86,10 +87,12 @@ struct AppState {
 }
 
 #[derive(Serialize, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
 pub struct UserRequest {
     #[validate(
         length(min = 5, max=15, message = "Username length must be between 5 and 15"),
-        required(message = "Username cannot be empty")
+        required(message = "Username cannot be empty"),
+        custom(function = "validate_not_ai_username")
     )]
     username: Option<String>,
 
@@ -99,6 +102,18 @@ pub struct UserRequest {
     )]
     password: Option<String>,
     password_re: Option<String>,
+}
+
+fn validate_not_ai_username(username: &Option<String>) -> Result<(), validator::ValidationError> {
+    match username {
+        None => Ok(()),
+        Some(username) => {
+            if username.starts_with("AI") {
+                return Err(validator::ValidationError::new("Username cannot start with \"AI\"!"));
+            }
+            Ok(())
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
