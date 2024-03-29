@@ -1,4 +1,7 @@
+use std::sync::Arc;
+
 use axum::{Router, routing::get, response::IntoResponse};
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -12,8 +15,27 @@ async fn main() {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
+    let db_url = "postgresql://root:password@localhost:5432/checkers";
+    info!("Connecting to database...");
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect(&db_url)
+        .await
+        .unwrap();
+ 
+    info!("Connection to database established.");
+    
+    info!("Applying migrations...");
+    sqlx::migrate!()
+        .run(&pool)
+        .await
+        .unwrap();
+
+    let state = AppState { db: pool };
+
     let app = Router::new()
-        .route("/authenticate", get(handle));
+        .route("/authenticate", get(handle))
+        .with_state(Arc::new(state));
 
     info!("Initializing router…");
     let host = "0.0.0.0";
@@ -30,4 +52,10 @@ async fn main() {
 
 async fn handle() -> impl IntoResponse {
     return "Hello world"
+}
+
+
+#[allow(dead_code)]
+struct AppState {
+    db: PgPool,
 }
