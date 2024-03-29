@@ -2,7 +2,7 @@ use core::fmt;
 use std::sync::Arc;
 
 use axum::{async_trait, extract::{rejection::FormRejection, FromRequest, Request, State}, http::StatusCode, response::{IntoResponse, Response}, routing::post, Form, Router};
-use sqlx::{postgres::PgPoolOptions, PgPool};
+use sqlx::{postgres::{PgPoolOptions, PgQueryResult}, PgPool};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -56,26 +56,30 @@ async fn main() {
 async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): ValidatedForm<UserRequest>) -> Response {
     info!("Creating new user requested…");
     let username = user.username.unwrap();
+    let password = user.password.unwrap(); // TODO: hashing password
 
     debug!("Trying to add user {} to db...", username);
-    let query_result =
-        sqlx::query("INSERT INTO account (username, password) VALUES ($1, $2)")
-        .bind(&username)
-        .bind(&user.password) // TODO: hashing password
-        .execute(&state.db)
-        .await
-        .map_err(|err: sqlx::Error| { 
-            debug!("{}", err); 
-            RegistrationError::from(err)
-        });
+    let query_result = save_user(&state.db, &username, &password).await;
 
     if let Err(err) = query_result {
-        debug!("cannot add user to db!");
         return err.into_response()
     }
 
     info!("User {} succesfully created.", username);
     return "Hello world".into_response()
+}
+
+async fn save_user(db: &PgPool, username: &String, password: &String) -> Result<PgQueryResult, RegistrationError> {
+    sqlx::query("INSERT INTO account (username, password) VALUES ($1, $2)")
+        .bind(username)
+        .bind(password)
+        .execute(db)
+        .await
+        .map_err(|err: sqlx::Error| { 
+            debug!("Cannot add user to db!");
+            debug!("{}", err); 
+            RegistrationError::from(err)
+        })
 }
 
 enum RegistrationError {
@@ -119,15 +123,15 @@ pub struct UserRequest {
         length(min = 5, max=15, message = "Username length must be between 5 and 15"),
         required(message = "Username cannot be empty"),
         custom(function = "validate_not_ai_username")
-    )]
-    username: Option<String>,
+        )]
+        username: Option<String>,
 
-    #[validate(
-        required(message = "Password cannot be empty"),
-        must_match(other = "password_re", message="Passwords don't match!")
-    )]
-    password: Option<String>,
-    password_re: Option<String>,
+        #[validate(
+            required(message = "Password cannot be empty"),
+            must_match(other = "password_re", message="Passwords don't match!")
+            )]
+            password: Option<String>,
+            password_re: Option<String>,
 }
 
 fn validate_not_ai_username(username: &Option<String>) -> Result<(), validator::ValidationError> {
@@ -148,9 +152,9 @@ pub struct ValidatedForm<T>(pub T);
 #[async_trait]
 impl<T, S> FromRequest<S> for ValidatedForm<T>
 where
-    T: DeserializeOwned + Validate,
-    S: Send + Sync,
-    Form<T>: FromRequest<S, Rejection = FormRejection>,
+T: DeserializeOwned + Validate,
+S: Send + Sync,
+Form<T>: FromRequest<S, Rejection = FormRejection>,
 {
     type Rejection = ValidationError;
 
