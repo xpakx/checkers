@@ -53,7 +53,7 @@ async fn main() {
         .unwrap();
 }
 
-async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): ValidatedForm<UserRequest>) -> impl IntoResponse {
+async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): ValidatedForm<UserRequest>) -> Response {
     info!("Creating new user requested…");
     let username = user.username.unwrap();
 
@@ -64,21 +64,47 @@ async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): Valid
         .bind(&user.password) // TODO: hashing password
         .execute(&state.db)
         .await
-        .map_err(|err: sqlx::Error| err.to_string());
+        .map_err(|err: sqlx::Error| { 
+            debug!("{}", err); 
+            RegistrationError::from(err)
+        });
 
     if let Err(err) = query_result {
         debug!("cannot add user to db!");
-        if err.contains("duplicate key") && err.contains("username") {
-            // TODO
-        }
-        if !err.contains("duplicate key") {
-            // TODO
-        }
-        debug!(err);
+        return err.into_response()
     }
 
     info!("User {} succesfully created.", username);
-    return "Hello world"
+    return "Hello world".into_response()
+}
+
+enum RegistrationError {
+    DuplicatedUsername,
+    Unknown,
+}
+
+impl From<sqlx::Error> for RegistrationError {
+    fn from(error: sqlx::Error) -> Self {
+        let err = error.to_string();
+        if err.contains("duplicate key") && err.contains("username") {
+            return RegistrationError::DuplicatedUsername
+        }
+        return RegistrationError::Unknown
+    }
+}
+
+
+impl IntoResponse for RegistrationError {
+    fn into_response(self) -> Response {
+        // TODO
+        match self {
+            RegistrationError::DuplicatedUsername => {
+                (StatusCode::BAD_REQUEST, "Username already exists!")
+            }
+            RegistrationError::Unknown => (StatusCode::INTERNAL_SERVER_ERROR, "Database error!"),
+        }
+        .into_response()
+    }
 }
 
 #[allow(dead_code)]
