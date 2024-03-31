@@ -2,9 +2,9 @@ use core::fmt;
 use std::sync::Arc;
 
 use axum::{async_trait, extract::{rejection::FormRejection, FromRequest, Request, State}, http::StatusCode, response::{IntoResponse, Response}, routing::post, Form, Json, Router};
-use bcrypt::hash;
+use bcrypt::{hash, verify};
 use jsonwebtoken::{encode, EncodingKey, Header};
-use sqlx::{postgres::{PgPoolOptions, PgQueryResult}, PgPool};
+use sqlx::{postgres::{PgPoolOptions, PgQueryResult}, PgPool, Postgres};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -40,6 +40,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/register", post(register))
+        .route("/authenticate", post(login))
         .with_state(Arc::new(state));
 
     info!("Initializing router…");
@@ -261,4 +262,55 @@ impl IntoResponse for ValidationError {
         }
         .into_response()
     }
+}
+
+async fn login(
+    State(state): State<Arc<AppState>>,
+    Form(user): Form<AuthRequest>) -> impl IntoResponse {
+    info!("Authentication requested…");
+    let username = user.username.unwrap();
+    let password = user.password.unwrap();
+
+    let user_db = sqlx::query_as::<Postgres, UserModel>(
+        "SELECT * FROM account WHERE username = $1",
+        )
+        .bind(&username)
+        .fetch_optional(&state.db)
+        .await;
+
+    let Ok(user_db) = user_db else {
+        return (StatusCode::BAD_REQUEST, "Db error").into_response()
+    };
+
+    let Some(user_db) = user_db else {
+        return (StatusCode::BAD_REQUEST, "No such user").into_response()
+    };
+
+    match verify(password, &user_db.password).unwrap() {
+        false => (StatusCode::UNAUTHORIZED, "Wrong password").into_response(),
+        true => {
+            let refresh_token = get_token(&username, true).unwrap_or(String::from(""));
+            let token = get_token(&username, false).unwrap_or(String::from(""));
+            let response = AuthResponse { username, token, refresh_token, moderator_role: false };
+            Json(response).into_response()
+        }
+    }
+}
+
+#[derive(Serialize, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+struct AuthRequest {
+    #[validate(required(message = "Username cannot be empty"))]
+    username: Option<String>,
+
+    #[validate(required(message = "Password cannot be empty"))]
+    password: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, sqlx::FromRow)]
+#[allow(non_snake_case)]
+struct UserModel {
+    id: i32,
+    username: String,
+    password: String,
 }
