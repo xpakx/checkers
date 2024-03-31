@@ -373,8 +373,14 @@ where
             Err(_) => return Err(TokenError::Malformed),
         };
 
-        // TODO: should not accept refresh token
-        // TODO: should check for expiration
+        if claims.claims.exp < (chrono::Utc::now().timestamp() as usize) {
+            return Err(TokenError::Expired);
+        }
+
+        if claims.claims.refresh {
+            return Err(TokenError::RefreshToken);
+        }
+
         return Ok(UserData { username: claims.claims.sub });
     }
 }
