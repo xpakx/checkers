@@ -1,9 +1,9 @@
 use core::fmt;
 use std::sync::Arc;
 
-use axum::{async_trait, extract::{rejection::FormRejection, FromRequest, Request, State}, http::StatusCode, response::{IntoResponse, Response}, routing::post, Form, Json, Router};
+use axum::{async_trait, extract::{rejection::FormRejection, FromRequest, FromRequestParts, Request, State}, http::{request::Parts, StatusCode}, response::{IntoResponse, Response}, routing::post, Form, Json, Router};
 use bcrypt::{hash, verify};
-use jsonwebtoken::{encode, EncodingKey, Header};
+use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use sqlx::{postgres::{PgPoolOptions, PgQueryResult}, PgPool, Postgres};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -158,7 +158,6 @@ impl IntoResponse for RegistrationError {
     }
 }
 
-#[allow(dead_code)]
 struct AppState {
     db: PgPool,
 }
@@ -271,6 +270,7 @@ async fn login(
     let username = user.username.unwrap();
     let password = user.password.unwrap();
 
+    debug!("Trying to get user {} from db…", username);
     let user_db = sqlx::query_as::<Postgres, UserModel>(
         "SELECT * FROM account WHERE username = $1",
         )
@@ -313,4 +313,68 @@ struct UserModel {
     id: i32,
     username: String,
     password: String,
+}
+
+#[allow(dead_code)]
+pub struct UserData {
+    username: String,
+}
+
+
+#[derive(Debug)]
+pub enum TokenError {
+    Expired,
+    Malformed,
+    RefreshToken,
+    MissingToken,
+}
+
+impl IntoResponse for TokenError {
+    fn into_response(self) -> Response {
+        // TODO
+        match self {
+            TokenError::Expired => (StatusCode::FORBIDDEN, "Token expired"),
+            TokenError::Malformed => (StatusCode::FORBIDDEN, "Malformed token"),
+            TokenError::RefreshToken => (StatusCode::FORBIDDEN, "Cannot use refresh token for auth"),
+            TokenError::MissingToken => (StatusCode::FORBIDDEN, "No token"),
+        }
+        .into_response()
+    }
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for UserData
+where
+    S: Send + Sync,
+{
+    type Rejection = TokenError;
+
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        let auth_header = parts.headers.get("Authorization").ok_or(TokenError::MissingToken)?;
+        let token = match auth_header.to_str() {
+            Ok(header_value) => {
+                if header_value.starts_with("Bearer ") {
+                    header_value.trim_start_matches("Bearer ").to_string()
+                } else {
+                    return Err(TokenError::Malformed);
+                }
+            }
+            Err(_) => return Err(TokenError::Malformed),
+        };
+
+        let claims = decode::<TokenClaims>(
+            &token,
+            &DecodingKey::from_secret("secret".as_ref()),
+            &Validation::default(),
+            );
+
+        let claims = match claims {
+            Ok(c) => c,
+            Err(_) => return Err(TokenError::Malformed),
+        };
+
+        // TODO: should not accept refresh token
+        // TODO: should check for expiration
+        return Ok(UserData { username: claims.claims.sub });
+    }
 }
