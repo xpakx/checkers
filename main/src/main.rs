@@ -1,8 +1,9 @@
 use core::fmt;
 use std::sync::Arc;
 
-use axum::{async_trait, extract::{rejection::FormRejection, FromRequest, Request, State}, http::StatusCode, response::{IntoResponse, Response}, routing::post, Form, Router};
+use axum::{async_trait, extract::{rejection::FormRejection, FromRequest, Request, State}, http::StatusCode, response::{IntoResponse, Response}, routing::post, Form, Json, Router};
 use bcrypt::hash;
+use jsonwebtoken::{encode, EncodingKey, Header};
 use sqlx::{postgres::{PgPoolOptions, PgQueryResult}, PgPool};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -20,7 +21,7 @@ async fn main() {
         .init();
 
     let db_url = "postgresql://root:password@localhost:5432/checkers";
-    info!("Connecting to database...");
+    info!("Connecting to database…");
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&db_url)
@@ -29,7 +30,7 @@ async fn main() {
  
     info!("Connection to database established.");
     
-    info!("Applying migrations...");
+    info!("Applying migrations…");
     sqlx::migrate!()
         .run(&pool)
         .await
@@ -38,7 +39,7 @@ async fn main() {
     let state = AppState { db: pool };
 
     let app = Router::new()
-        .route("/authenticate", post(register))
+        .route("/register", post(register))
         .with_state(Arc::new(state));
 
     info!("Initializing router…");
@@ -59,7 +60,7 @@ async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): Valid
     let username = user.username.unwrap();
     let password = hash(user.password.unwrap(), 10).unwrap();
 
-    debug!("Trying to add user {} to db...", username);
+    debug!("Trying to add user {} to db…", username);
     let query_result = save_user(&state.db, &username, &password).await;
 
     if let Err(err) = query_result {
@@ -67,7 +68,21 @@ async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): Valid
     }
 
     info!("User {} succesfully created.", username);
-    return "Hello world".into_response()
+
+    let refresh_token = get_token(&username, true).unwrap_or(String::from(""));
+    let token = get_token(&username, false).unwrap_or(String::from(""));
+    let response = AuthResponse { username, token, refresh_token, moderator_role: false };
+    return Json(response).into_response()
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct AuthResponse {
+    username: String,
+    token: String,
+    refresh_token: String,
+    moderator_role: bool,
 }
 
 async fn save_user(db: &PgPool, username: &String, password: &String) -> Result<PgQueryResult, RegistrationError> {
@@ -81,6 +96,36 @@ async fn save_user(db: &PgPool, username: &String, password: &String) -> Result<
             debug!("{}", err); 
             RegistrationError::from(err)
         })
+}
+
+pub fn get_token(username: &String, refresh: bool) -> Result<String, String> {
+    let now = chrono::Utc::now();
+    let iat = now.timestamp() as usize;
+    let duration = match refresh {
+        true => chrono::Duration::days(90),
+        false => chrono::Duration::minutes(10),
+    };
+    let exp = (now + duration).timestamp() as usize;
+    let claims: TokenClaims = TokenClaims {
+        sub: String::from(username),
+        exp,
+        iat,
+        refresh,
+    };
+
+    encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret("secret".as_ref()),
+    ).map_err(|_| String::from("Couldn't create token"))
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenClaims {
+    pub sub: String,
+    pub iat: usize,
+    pub exp: usize,
+    pub refresh: bool,
 }
 
 enum RegistrationError {
