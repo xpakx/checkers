@@ -41,6 +41,7 @@ async fn main() {
     let app = Router::new()
         .route("/register", post(register))
         .route("/authenticate", post(login))
+        .route("/refresh", post(refresh_token))
         .with_state(Arc::new(state));
 
     info!("Initializing router…");
@@ -425,4 +426,49 @@ where
 
         return Ok(UserData { username: claims.claims.sub });
     }
+}
+
+async fn refresh_token(
+    State(state): State<Arc<AppState>>,
+    Form(request): Form<RefreshRequest>) -> impl IntoResponse {
+    info!("Refreshing token requested…");
+    let token = request.token.unwrap();
+    let claims = decode::<TokenClaims>(
+        &token,
+        &DecodingKey::from_secret("secret".as_ref()),
+        &Validation::default(),
+        );
+
+    let claims = match claims {
+        Ok(c) => c,
+        Err(_) => return (StatusCode::BAD_REQUEST, "Malformed token!").into_response(),
+    };
+
+    if claims.claims.exp < (chrono::Utc::now().timestamp() as usize) {
+        return (StatusCode::BAD_REQUEST, "Expired token").into_response()
+    }
+
+    if !claims.claims.refresh {
+        return (StatusCode::BAD_REQUEST, "Not a refresh token").into_response()
+    }
+
+    let username = claims.claims.sub;
+    let user_db = get_user(&state.db, &username).await;
+
+    if let Err(err) = user_db {
+        return err.into_response()
+    };
+
+    let refresh_token = get_token(&username, true).unwrap_or(String::from(""));
+    let token = get_token(&username, false).unwrap_or(String::from(""));
+    let response = AuthResponse { username, token, refresh_token, moderator_role: false };
+    Json(response).into_response()
+}
+
+
+#[derive(Serialize, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+struct RefreshRequest {
+    #[validate(required(message = "Token cannot be empty"))]
+    token: Option<String>,
 }
