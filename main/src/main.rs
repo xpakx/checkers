@@ -270,21 +270,12 @@ async fn login(
     let username = user.username.unwrap();
     let password = user.password.unwrap();
 
-    debug!("Trying to get user {} from db…", username);
-    let user_db = sqlx::query_as::<Postgres, UserModel>(
-        "SELECT * FROM account WHERE username = $1",
-        )
-        .bind(&username)
-        .fetch_optional(&state.db)
-        .await;
+    let user_db = get_user(&state.db, &username).await;
 
-    let Ok(user_db) = user_db else {
-        return (StatusCode::BAD_REQUEST, "Db error").into_response()
+    if let Err(err) = user_db {
+        return err.into_response()
     };
-
-    let Some(user_db) = user_db else {
-        return (StatusCode::BAD_REQUEST, "No such user").into_response()
-    };
+    let user_db = user_db.unwrap();
 
     match verify(password, &user_db.password).unwrap() {
         false => (StatusCode::UNAUTHORIZED, "Wrong password").into_response(),
@@ -296,6 +287,53 @@ async fn login(
         }
     }
 }
+
+async fn get_user(db: &PgPool, username: &String) -> Result<UserModel, FetchUserError> {
+    debug!("Trying to get user {} from db…", username);
+    let result = sqlx::query_as::<Postgres, UserModel>(
+        "SELECT * FROM account WHERE username = $1",
+        )
+        .bind(username)
+        .fetch_optional(db)
+        .await
+        .map_err(|err: sqlx::Error| { 
+            debug!("Cannot get user from db!");
+            debug!("{}", err); 
+            FetchUserError::from(err)
+        });
+    match result {
+        Ok(None) => Err(FetchUserError::NoUser),
+        Ok(Some(user)) => Ok(user),
+        Err(err) => Err(err),
+    }
+}
+
+#[derive(Debug)]
+enum FetchUserError {
+    NoUser,
+    Unknown,
+}
+
+impl From<sqlx::Error> for FetchUserError {
+    fn from(error: sqlx::Error) -> Self {
+        return FetchUserError::Unknown
+    }
+}
+
+
+impl IntoResponse for FetchUserError {
+    fn into_response(self) -> Response {
+        // TODO
+        match self {
+            FetchUserError::NoUser => {
+                (StatusCode::BAD_REQUEST, "No such user!")
+            }
+            FetchUserError::Unknown => (StatusCode::INTERNAL_SERVER_ERROR, "Database error!"),
+        }
+        .into_response()
+    }
+}
+
 
 #[derive(Serialize, Deserialize, Validate)]
 #[serde(rename_all = "camelCase")]
