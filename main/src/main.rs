@@ -277,7 +277,11 @@ async fn login(
     };
     let user_db = user_db.unwrap();
 
-    match verify(password, &user_db.password).unwrap() {
+    verify_password(username, &user_db.password, password)
+}
+
+fn verify_password(username: String, real_password: &String, password: String) -> Response {
+    match verify(password, real_password).unwrap() {
         false => (StatusCode::UNAUTHORIZED, "Wrong password").into_response(),
         true => {
             let refresh_token = get_token(&username, true).unwrap_or(String::from(""));
@@ -315,7 +319,7 @@ enum FetchUserError {
 }
 
 impl From<sqlx::Error> for FetchUserError {
-    fn from(error: sqlx::Error) -> Self {
+    fn from(_error: sqlx::Error) -> Self {
         return FetchUserError::Unknown
     }
 }
