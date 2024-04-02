@@ -5,7 +5,7 @@ use bcrypt::hash;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use tracing::{debug, info};
 
-use crate::{security::{get_token, verify_password, TokenClaims}, user::{repository::{get_user, save_user}, AuthResponse}, AppState, ValidatedForm};
+use crate::{security::{get_token, verify_password, TokenClaims}, user::{repository::{get_user, save_user}, AuthResponse}, validation::ValidatedForm, AppState};
 
 use super::{RefreshRequest, UserRequest, AuthRequest};
 
