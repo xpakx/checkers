@@ -11,6 +11,7 @@ use crate::user::{service::{register, login, refresh_token}, AuthResponse};
 mod security;
 mod user;
 mod validation;
+mod game;
 
 #[tokio::main]
 async fn main() {
