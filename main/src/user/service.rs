@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::{extract::State, http::StatusCode, response::{IntoResponse, Response}, Form, Json};
+use axum::{extract::State, http::StatusCode, response::{IntoResponse, Response}, Json};
 use bcrypt::hash;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use tracing::{debug, info};
@@ -31,7 +31,7 @@ pub async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): V
 
 pub async fn login(
     State(state): State<Arc<AppState>>,
-    Form(user): Form<AuthRequest>) -> impl IntoResponse {
+    ValidatedForm(user): ValidatedForm<AuthRequest>) -> impl IntoResponse {
     info!("Authentication requested…");
     let username = user.username.unwrap();
     let password = user.password.unwrap();
@@ -48,7 +48,7 @@ pub async fn login(
 
 pub async fn refresh_token(
     State(state): State<Arc<AppState>>,
-    Form(request): Form<RefreshRequest>) -> impl IntoResponse {
+    ValidatedForm(request): ValidatedForm<RefreshRequest>) -> impl IntoResponse {
     info!("Refreshing token requested…");
     let token = request.token.unwrap();
     let claims = decode::<TokenClaims>(
