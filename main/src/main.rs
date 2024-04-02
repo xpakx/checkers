@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::{fs::File, sync::Arc, io::Read};
 
 use axum::{routing::post, Router};
 use sqlx::{postgres::PgPoolOptions, PgPool};
-use tracing::info;
+use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use serde::{Deserialize, Serialize};
 
@@ -14,15 +14,18 @@ mod validation;
 
 #[tokio::main]
 async fn main() {
+    info!("Getting config…");
+    let config = get_config();
+
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "checkers=debug".into()),
+                .unwrap_or_else(|_| format!("checkers={}", config.debug_level).into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let db_url = "postgresql://root:password@localhost:5432/checkers";
+    let db_url = config.db;
     info!("Connecting to database…");
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -48,7 +51,7 @@ async fn main() {
 
     info!("Initializing router…");
     let host = "0.0.0.0";
-    let port = 8080;
+    let port = config.port;
     let listener = tokio::net::TcpListener::bind(format!("{}:{}", host, port))
         .await
         .unwrap();
@@ -69,4 +72,67 @@ struct UserModel {
     id: i32,
     username: String,
     password: String,
+}
+
+#[derive(Deserialize, Serialize)]
+struct Config {
+    debug_level: Option<String>,
+    port: Option<usize>,
+    jwt_secret: Option<String>,
+    db: Option<String>,
+}
+
+impl Default for Config {
+    fn default() -> Config {
+        Config { 
+            debug_level: None,
+            port: None,
+            jwt_secret: None,
+            db: None,
+        } 
+    } 
+}
+
+#[allow(dead_code)]
+struct ConfigFin {
+    debug_level: String,
+    port: usize,
+    jwt_secret: String,
+    db: String,
+}
+
+fn load_yaml_config(path: &str) -> Config {
+    debug!("Reading services from yaml file…");
+    let file = File::open(path);
+    let Ok(mut file) = file else {
+        debug!("No yaml configuration found.");
+        return Config::default()
+    };
+    let mut content = String::new();
+    file.read_to_string(&mut content).unwrap();
+    debug!("Deserializing…");
+    let config: Config = serde_yaml::from_str(&content).unwrap();
+    config
+}
+
+fn get_config() -> ConfigFin {
+    let config = load_yaml_config("config.yaml");
+    ConfigFin {
+        debug_level: match config.debug_level {
+            None => String::from("debug"),
+            Some(value) => value,
+        },
+        port: match config.port {
+            None => 8080,
+            Some(value) => value,
+        },
+        jwt_secret: match config.jwt_secret {
+            None => String::from("secret"),
+            Some(value) => value,
+        },
+        db: match config.db {
+            None => String::from("postgresql://root:password@localhost:5432/checkers"),
+            Some(value) => value,
+        },
+    }
 }
