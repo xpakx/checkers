@@ -1,4 +1,4 @@
-use std::{fs::File, sync::Arc, io::Read};
+use std::{env, fs::File, io::Read, sync::Arc};
 
 use axum::{routing::{post, get}, Router};
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -98,6 +98,7 @@ impl Default for Config {
     } 
 }
 
+// TODO
 #[allow(dead_code)]
 struct ConfigFin {
     debug_level: String,
@@ -120,24 +121,54 @@ fn load_yaml_config(path: &str) -> Config {
     config
 }
 
+fn load_env_config() -> Config {
+    Config {
+        debug_level: match env::var("DEBUG_LEVEL") {
+            Ok(env) => Some(env),
+            _ => None,
+        },
+        port: match env::var("SERVER_PORT") {
+            Ok(env) => match env.parse() {
+                Err(_) => None,
+                Ok(env) => Some(env),
+            },
+            _ => None,
+        },
+        jwt_secret: match env::var("JWT_SECRET") {
+            Ok(env) => Some(env),
+            _ => None,
+        },
+        db: match env::var("DB_URL") {
+            Ok(env) => Some(env),
+            _ => None,
+        },
+    }
+}
+
 fn get_config() -> ConfigFin {
+    let env_config = load_env_config();
     let config = load_yaml_config("config.yaml");
+
     ConfigFin {
-        debug_level: match config.debug_level {
-            None => String::from("debug"),
-            Some(value) => value,
+        debug_level: match (config.debug_level, env_config.debug_level) {
+            (_, Some(value)) => value,
+            (Some(value), None) => value,
+            (None, None) => String::from("debug"),
         },
-        port: match config.port {
-            None => 8080,
-            Some(value) => value,
+        port: match (config.port, env_config.port) {
+            (_, Some(value)) => value,
+            (Some(value), None) => value,
+            (None, None) => 8080,
         },
-        jwt_secret: match config.jwt_secret {
-            None => String::from("secret"),
-            Some(value) => value,
+        jwt_secret: match (config.jwt_secret, env_config.jwt_secret) {
+            (_, Some(value)) => value,
+            (Some(value), None) => value,
+            (None, None) => String::from("secret"),
         },
-        db: match config.db {
-            None => String::from("postgresql://root:password@localhost:5432/checkers"),
-            Some(value) => value,
+        db: match (config.db, env_config.db) {
+            (_, Some(value)) => value,
+            (Some(value), None) => value,
+            (None, None) => String::from("postgresql://root:password@localhost:5432/checkers"),
         },
     }
 }
