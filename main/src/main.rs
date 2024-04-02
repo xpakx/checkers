@@ -2,18 +2,19 @@ use core::fmt;
 use std::sync::Arc;
 
 use axum::{async_trait, extract::{rejection::FormRejection, FromRequest, Request, State}, http::StatusCode, response::{IntoResponse, Response}, routing::post, Form, Json, Router};
-use bcrypt::hash;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use security::TokenClaims;
-use sqlx::{postgres::{PgPoolOptions, PgQueryResult}, PgPool, Postgres};
+use sqlx::{postgres::PgPoolOptions, PgPool, Postgres};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use validator::Validate;
 
 use crate::security::{get_token, verify_password};
+use crate::user::{service::register, AuthResponse};
 
 mod security;
+mod user;
 
 #[tokio::main]
 async fn main() {
@@ -62,79 +63,7 @@ async fn main() {
         .unwrap();
 }
 
-async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): ValidatedForm<UserRequest>) -> Response {
-    info!("Creating new user requested…");
-    let username = user.username.unwrap();
-    let password = hash(user.password.unwrap(), 10).unwrap();
-
-    debug!("Trying to add user {} to db…", username);
-    let query_result = save_user(&state.db, &username, &password).await;
-
-    if let Err(err) = query_result {
-        return err.into_response()
-    }
-
-    info!("User {} succesfully created.", username);
-
-    let refresh_token = get_token(&username, true).unwrap_or(String::from(""));
-    let token = get_token(&username, false).unwrap_or(String::from(""));
-    let response = AuthResponse { username, token, refresh_token, moderator_role: false };
-    return Json(response).into_response()
-}
-
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct AuthResponse {
-    username: String,
-    token: String,
-    refresh_token: String,
-    moderator_role: bool,
-}
-
-async fn save_user(db: &PgPool, username: &String, password: &String) -> Result<PgQueryResult, RegistrationError> {
-    sqlx::query("INSERT INTO account (username, password) VALUES ($1, $2)")
-        .bind(username)
-        .bind(password)
-        .execute(db)
-        .await
-        .map_err(|err: sqlx::Error| { 
-            debug!("Cannot add user to db!");
-            debug!("{}", err); 
-            RegistrationError::from(err)
-        })
-}
-
-enum RegistrationError {
-    DuplicatedUsername,
-    Unknown,
-}
-
-impl From<sqlx::Error> for RegistrationError {
-    fn from(error: sqlx::Error) -> Self {
-        let err = error.to_string();
-        if err.contains("duplicate key") && err.contains("username") {
-            return RegistrationError::DuplicatedUsername
-        }
-        return RegistrationError::Unknown
-    }
-}
-
-
-impl IntoResponse for RegistrationError {
-    fn into_response(self) -> Response {
-        // TODO
-        match self {
-            RegistrationError::DuplicatedUsername => {
-                (StatusCode::BAD_REQUEST, "Username already exists!")
-            }
-            RegistrationError::Unknown => (StatusCode::INTERNAL_SERVER_ERROR, "Database error!"),
-        }
-        .into_response()
-    }
-}
-
-struct AppState {
+pub struct AppState {
     db: PgPool,
 }
 
