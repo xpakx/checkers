@@ -2,37 +2,49 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres};
 use tracing::debug;
 
-pub async fn get_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameModel>, String> {
-    sqlx::query_as::<Postgres, GameModel>("SELECT * FROM game g WHERE (g.user.id = $1 OR G.opponent.id = $1) AND g.accepted = true AND g.finished = false")
+pub async fn get_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, String> {
+    sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
+                                          FROM game g 
+                                          LEFT JOIN account a1 ON a1.id = g.user_id 
+                                          LEFT JOIN account a2 ON a2.id = g.opponent_id 
+                                          WHERE (g.user_id = $1 OR g.opponent_id = $1) AND g.accepted = true AND g.finished = false")
         .bind(user_id)
         .fetch_all(db)
         .await
         .map_err(|err: sqlx::Error| { 
-            debug!("Cannot add user to db!");
+            debug!("Db error");
             debug!("{}", err); 
             err.to_string()
         })
 }
 
-pub async fn get_finished_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameModel>, String> {
-    sqlx::query_as::<Postgres, GameModel>("SELECT * FROM game g WHERE (g.user.id = $1 OR G.opponent.id = $1) AND g.accepted = true AND g.finished = true")
+pub async fn get_finished_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, String> {
+    sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
+                                          FROM game g 
+                                          LEFT JOIN account a1 ON a1.id = g.user_id 
+                                          LEFT JOIN account a2 ON a2.id = g.opponent_id 
+                                          WHERE (g.user_id = $1 OR g.opponent_id = $1) AND g.accepted = true AND g.finished = true")
         .bind(user_id)
         .fetch_all(db)
         .await
         .map_err(|err: sqlx::Error| { 
-            debug!("Cannot add user to db!");
+            debug!("Db error");
             debug!("{}", err); 
             err.to_string()
         })
 }
 
-pub async fn get_requests(db: &PgPool, user_id: &i32) -> Result<Vec<GameModel>, String> {
-    sqlx::query_as::<Postgres, GameModel>("SELECT * FROM game g WHERE G.opponent.id = $1 AND g.accepted = false AND g.rejected = false")
+pub async fn get_requests(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, String> {
+    sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
+                                          FROM game g 
+                                          LEFT JOIN account a1 ON a1.id = g.user_id 
+                                          LEFT JOIN account a2 ON a2.id = g.opponent_id 
+                                          WHERE g.opponent_id = $1 AND g.accepted = false AND g.rejected = false")
         .bind(user_id)
         .fetch_all(db)
         .await
         .map_err(|err: sqlx::Error| { 
-            debug!("Cannot add user to db!");
+            debug!("Db error");
             debug!("{}", err); 
             err.to_string()
         })
@@ -47,4 +59,16 @@ pub struct GameModel {
 
     finished: bool,
     user_id: i32,
+    opponent_id: i32,
+}
+
+#[derive(Serialize, Deserialize, sqlx::FromRow)]
+pub struct GameDetails {
+    id: i32,
+    accepted: bool,
+    rejected: bool,
+
+    finished: bool,
+    user: String,
+    opponent: String,
 }
