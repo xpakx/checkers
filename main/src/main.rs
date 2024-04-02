@@ -1,12 +1,13 @@
 use std::{fs::File, sync::Arc, io::Read};
 
-use axum::{routing::post, Router};
+use axum::{routing::{post, get}, Router};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tracing::{debug, info};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use serde::{Deserialize, Serialize};
 
 use crate::user::{service::{register, login, refresh_token}, AuthResponse};
+use crate::game::service::{games, archive, requests};
 
 mod security;
 mod user;
@@ -48,6 +49,9 @@ async fn main() {
         .route("/register", post(register))
         .route("/authenticate", post(login))
         .route("/refresh", post(refresh_token))
+        .route("/game", get(games))
+        .route("/game/archive", get(archive))
+        .route("/game/request", get(requests))
         .with_state(Arc::new(state));
 
     info!("Initializing router…");

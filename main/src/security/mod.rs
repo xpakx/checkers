@@ -47,9 +47,8 @@ pub struct TokenClaims {
     pub refresh: bool,
 }
 
-#[allow(dead_code)]
 pub struct UserData {
-    username: String,
+    pub username: String,
 }
 
 
