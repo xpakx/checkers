@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 use sqlx::{PgPool, Postgres};
 use tracing::debug;
 
-pub async fn get_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, String> {
+use crate::game::error::FetchGameError;
+
+pub async fn get_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, FetchGameError> {
     sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
                                           FROM game g 
                                           LEFT JOIN account a1 ON a1.id = g.user_id 
@@ -12,13 +14,13 @@ pub async fn get_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, S
         .fetch_all(db)
         .await
         .map_err(|err: sqlx::Error| { 
-            debug!("Db error");
+            debug!("Cannot get games from db!");
             debug!("{}", err); 
-            err.to_string()
+            FetchGameError::from(err)
         })
 }
 
-pub async fn get_finished_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, String> {
+pub async fn get_finished_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, FetchGameError> {
     sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
                                           FROM game g 
                                           LEFT JOIN account a1 ON a1.id = g.user_id 
@@ -28,13 +30,13 @@ pub async fn get_finished_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDe
         .fetch_all(db)
         .await
         .map_err(|err: sqlx::Error| { 
-            debug!("Db error");
+            debug!("Cannot get games from db!");
             debug!("{}", err); 
-            err.to_string()
+            FetchGameError::from(err)
         })
 }
 
-pub async fn get_requests(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, String> {
+pub async fn get_requests(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, FetchGameError> {
     sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
                                           FROM game g 
                                           LEFT JOIN account a1 ON a1.id = g.user_id 
@@ -44,9 +46,9 @@ pub async fn get_requests(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>
         .fetch_all(db)
         .await
         .map_err(|err: sqlx::Error| { 
-            debug!("Db error");
+            debug!("Cannot get games from db!");
             debug!("{}", err); 
-            err.to_string()
+            FetchGameError::from(err)
         })
 }
 
