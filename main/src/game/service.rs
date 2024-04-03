@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{extract::State, response::{IntoResponse, Response}, Json};
 use tracing::{debug, info};
 
-use crate::{game::{repository::{get_finished_games, get_games, get_requests, save_game}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedForm, AppState};
+use crate::{game::{repository::{get_finished_games, get_games, get_requests, save_game, GameModel}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedForm, AppState};
 
 use super::GameRequest;
 
@@ -99,7 +99,7 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
     let opponent = query_result.unwrap();
 
     debug!("Trying to add game to db…");
-    let query_result = save_game(&state.db, &user.id, &opponent.id).await;
+    let query_result = save_game(&state.db, GameModel { user_id: user.id, opponent_id: opponent.id, ..Default::default() }).await;
 
     if let Err(err) = query_result {
         return err.into_response()
