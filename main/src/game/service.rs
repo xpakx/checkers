@@ -3,7 +3,9 @@ use std::sync::Arc;
 use axum::{extract::State, response::{IntoResponse, Response}, Json};
 use tracing::{debug, info};
 
-use crate::{game::repository::{get_finished_games, get_games, get_requests}, security::UserData, user::repository::get_user, AppState};
+use crate::{game::{repository::{get_finished_games, get_games, get_requests, save_game}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedForm, AppState};
+
+use super::GameRequest;
 
 pub async fn games(State(state): State<Arc<AppState>>, user: UserData) -> Response {
     info!("List of active games requested…");
@@ -72,4 +74,38 @@ pub async fn requests(State(state): State<Arc<AppState>>, user: UserData) -> Res
     let games = query_result.unwrap();
 
     return Json(games).into_response()
+}
+
+// TODO
+pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, ValidatedForm(game): ValidatedForm<GameRequest>) -> Response {
+    info!("Creating new game requested…");
+    let username = user.username;
+    let opponent = game.opponent.unwrap();
+
+    debug!("Trying to get user {} from db…", username);
+    let query_result = get_user(&state.db, &username).await;
+
+    if let Err(err) = query_result {
+        return err.into_response()
+    }
+    let user = query_result.unwrap();
+
+    debug!("Trying to get opponent {} from db…", opponent);
+    let query_result = get_user(&state.db, &opponent).await;
+
+    if let Err(err) = query_result {
+        return err.into_response()
+    }
+    let opponent = query_result.unwrap();
+
+    debug!("Trying to add game to db…");
+    let query_result = save_game(&state.db, &user.id, &opponent.id).await;
+
+    if let Err(err) = query_result {
+        return err.into_response()
+    }
+
+    info!("Game {} succesfully created.", 1);
+
+    return Json(NewGameResponse{game_id: 1}).into_response()
 }

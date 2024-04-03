@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, Postgres};
+use sqlx::{postgres::PgQueryResult, PgPool, Postgres};
 use tracing::debug;
 
 use crate::game::error::FetchGameError;
@@ -49,6 +49,19 @@ pub async fn get_requests(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>
             debug!("Cannot get games from db!");
             debug!("{}", err); 
             FetchGameError::from(err)
+        })
+}
+
+pub async fn save_game(db: &PgPool, user_id: &i32, opponent_id: &i32) -> Result<PgQueryResult, String> {
+    sqlx::query("INSERT INTO game (user_id, opponent_id) VALUES ($1, $2)") // TOD
+        .bind(user_id)
+        .bind(opponent_id)
+        .execute(db)
+        .await
+        .map_err(|err: sqlx::Error| { 
+            debug!("Cannot add game to db!");
+            debug!("{}", err); 
+            err.to_string()
         })
 }
 
