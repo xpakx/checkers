@@ -1,21 +1,21 @@
 use axum::{http::StatusCode, response::{IntoResponse, Response}};
 
 #[derive(Debug)]
-pub enum FetchGameError {
+pub enum GameError {
     Unknown,
 }
 
-impl From<sqlx::Error> for FetchGameError {
+impl From<sqlx::Error> for GameError {
     fn from(_error: sqlx::Error) -> Self {
-        return FetchGameError::Unknown
+        return GameError::Unknown
     }
 }
 
-impl IntoResponse for FetchGameError {
+impl IntoResponse for GameError {
     fn into_response(self) -> Response {
         // TODO
         match self {
-            FetchGameError::Unknown => (StatusCode::INTERNAL_SERVER_ERROR, "Database error!"),
+            GameError::Unknown => (StatusCode::INTERNAL_SERVER_ERROR, "Database error!"),
         }
         .into_response()
     }
