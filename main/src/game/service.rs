@@ -104,8 +104,9 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
     if let Err(err) = query_result {
         return err.into_response()
     }
+    let id = query_result.unwrap();
 
-    info!("Game {} succesfully created.", 1);
+    info!("Game {} succesfully created.", id);
 
-    return Json(NewGameResponse{game_id: 1}).into_response()
+    return Json(NewGameResponse{game_id: id}).into_response()
 }

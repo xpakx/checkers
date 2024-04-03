@@ -15,5 +15,5 @@ pub struct GameRequest {
 #[derive(Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct NewGameResponse {
-    pub game_id: usize,
+    pub game_id: i32,
 }
