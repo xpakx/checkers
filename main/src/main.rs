@@ -45,7 +45,7 @@ async fn main() {
         .await
         .unwrap();
 
-    let state = AppState { db: pool };
+    let state = AppState { db: pool, jwt: config.jwt_secret };
 
     let app = Router::new()
         .route("/register", post(register))
@@ -74,6 +74,7 @@ async fn main() {
 
 pub struct AppState {
     db: PgPool,
+    jwt: String,
 }
 
 #[derive(Serialize, Deserialize, sqlx::FromRow)]

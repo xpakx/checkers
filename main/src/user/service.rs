@@ -23,8 +23,8 @@ pub async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): V
 
     info!("User {} succesfully created.", username);
 
-    let refresh_token = get_token(&username, true).unwrap_or(String::from(""));
-    let token = get_token(&username, false).unwrap_or(String::from(""));
+    let refresh_token = get_token(&username, true, &state.jwt).unwrap_or(String::from(""));
+    let token = get_token(&username, false, &state.jwt).unwrap_or(String::from(""));
     let response = AuthResponse { username, token, refresh_token, moderator_role: false };
     return Json(response).into_response()
 }
@@ -43,7 +43,7 @@ pub async fn login(
     };
     let user_db = user_db.unwrap();
 
-    verify_password(username, &user_db.password, password)
+    verify_password(username, &user_db.password, password, &state.jwt)
 }
 
 pub async fn refresh_token(
@@ -53,7 +53,7 @@ pub async fn refresh_token(
     let token = request.token.unwrap();
     let claims = decode::<TokenClaims>(
         &token,
-        &DecodingKey::from_secret("secret".as_ref()),
+        &DecodingKey::from_secret(state.jwt.as_ref()),
         &Validation::default(),
         );
 
@@ -77,8 +77,8 @@ pub async fn refresh_token(
         return err.into_response()
     };
 
-    let refresh_token = get_token(&username, true).unwrap_or(String::from(""));
-    let token = get_token(&username, false).unwrap_or(String::from(""));
+    let refresh_token = get_token(&username, true, &state.jwt).unwrap_or(String::from(""));
+    let token = get_token(&username, false, &state.jwt).unwrap_or(String::from(""));
     let response = AuthResponse { username, token, refresh_token, moderator_role: false };
     Json(response).into_response()
 }

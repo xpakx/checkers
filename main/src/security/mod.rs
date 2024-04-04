@@ -1,11 +1,13 @@
-use axum::{async_trait, extract::FromRequestParts, http::{request::Parts, StatusCode}, response::{IntoResponse, Response}, Json};
+use std::sync::Arc;
+
+use axum::{async_trait, extract::{FromRef, FromRequestParts}, http::{request::Parts, StatusCode}, response::{IntoResponse, Response}, Json};
 use bcrypt::verify;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 
-use crate::AuthResponse;
+use crate::{AppState, AuthResponse};
 
-pub fn get_token(username: &String, refresh: bool) -> Result<String, String> {
+pub fn get_token(username: &String, refresh: bool, jwt: &String) -> Result<String, String> {
     let now = chrono::Utc::now();
     let iat = now.timestamp() as usize;
     let duration = match refresh {
@@ -23,16 +25,16 @@ pub fn get_token(username: &String, refresh: bool) -> Result<String, String> {
     encode(
         &Header::default(),
         &claims,
-        &EncodingKey::from_secret("secret".as_ref()),
+        &EncodingKey::from_secret(jwt.as_ref()),
     ).map_err(|_| String::from("Couldn't create token"))
 }
 
-pub fn verify_password(username: String, real_password: &String, password: String) -> Response {
+pub fn verify_password(username: String, real_password: &String, password: String, jwt: &String) -> Response {
     match verify(password, real_password).unwrap() {
         false => (StatusCode::UNAUTHORIZED, "Wrong password").into_response(),
         true => {
-            let refresh_token = get_token(&username, true).unwrap_or(String::from(""));
-            let token = get_token(&username, false).unwrap_or(String::from(""));
+            let refresh_token = get_token(&username, true, jwt).unwrap_or(String::from(""));
+            let token = get_token(&username, false, jwt).unwrap_or(String::from(""));
             let response = AuthResponse { username, token, refresh_token, moderator_role: false };
             Json(response).into_response()
         }
@@ -77,10 +79,11 @@ impl IntoResponse for TokenError {
 impl<S> FromRequestParts<S> for UserData
 where
     S: Send + Sync,
+    Arc<AppState>: FromRef<S>,
 {
     type Rejection = TokenError;
 
-    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
         let auth_header = parts.headers.get("Authorization").ok_or(TokenError::MissingToken)?;
         let token = match auth_header.to_str() {
             Ok(header_value) => {
@@ -93,9 +96,10 @@ where
             Err(_) => return Err(TokenError::Malformed),
         };
 
+        let state: Arc<AppState> = Arc::from_ref(state);
         let claims = decode::<TokenClaims>(
             &token,
-            &DecodingKey::from_secret("secret".as_ref()),
+            &DecodingKey::from_secret(state.jwt.as_ref()),
             &Validation::default(),
             );
 
