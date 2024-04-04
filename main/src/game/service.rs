@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Json};
 use tracing::{debug, info};
 
-use crate::{game::{self, error::GameError, repository::{change_invitation_status, get_finished_games, get_game, get_games, get_requests, save_game, GameModel, InvitationStatus}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedForm, AppState};
+use crate::{game::{self, error::GameError, repository::{change_invitation_status, get_finished_games, get_game, get_game_details, get_games, get_requests, save_game, GameModel, InvitationStatus}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedForm, AppState};
 
 use super::{AcceptRequest, GameRequest};
 
@@ -155,4 +155,18 @@ pub async fn accept_request(State(state): State<Arc<AppState>>, user: UserData, 
     info!("Game {} succesfully updated.", id);
 
     return Json(NewGameResponse{game_id: id}).into_response()
+}
+
+pub async fn game(State(state): State<Arc<AppState>>, _user: UserData, Path(id): Path<i32>) -> Response {
+    info!("Getting game requested…");
+
+    debug!("Trying to get game {} from db…", id);
+    let query_result = get_game_details(&state.db, &id).await;
+
+    if let Err(err) = query_result {
+        return err.into_response()
+    }
+    let game = query_result.unwrap();
+
+    return Json(game).into_response()
 }

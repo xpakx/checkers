@@ -200,10 +200,17 @@ impl Default for GameModel {
 #[derive(Serialize, Deserialize, sqlx::FromRow)]
 pub struct GameDetails {
     pub id: i32,
-    pub accepted: bool,
-    pub rejected: bool,
+    pub invitation: InvitationStatus,
+    pub game_type: GameType,
+    pub ruleset: RuleSet,
+    pub ai_type: AIType,
+    pub status: GameStatus,
 
-    pub finished: bool,
+    pub current_state: String,
+    pub user_starts: bool,
+    pub user_turn: bool,
+    pub user_id: i32,
+    pub opponent_id: Option<i32>,
     pub user: String,
-    pub opponent: String,
+    pub opponent: Option<String>,
 }
