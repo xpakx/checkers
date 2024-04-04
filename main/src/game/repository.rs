@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::{PgPool, Postgres};
+use sqlx::{postgres::PgQueryResult, PgPool, Postgres};
 use tracing::debug;
 
 use crate::game::error::GameError;
@@ -71,6 +71,59 @@ pub async fn save_game(db: &PgPool, game: GameModel) -> Result<i32, GameError> {
         Ok(Some(id)) => Ok(id),
         Err(err) => Err(err),
     }
+}
+
+pub async fn get_game(db: &PgPool, id: &i32) -> Result<GameModel, GameError> {
+    let result = sqlx::query_as::<Postgres, GameModel>("SELECT * FROM game WHERE id = $1")
+        .bind(id)
+        .fetch_optional(db)
+        .await
+        .map_err(|err: sqlx::Error| { 
+            debug!("Cannot get game from db!");
+            debug!("{}", err); 
+            GameError::from(err)
+        });
+
+    match result {
+        Ok(None) => Err(GameError::Unknown),
+        Ok(Some(id)) => Ok(id),
+        Err(err) => Err(err),
+    }
+}
+
+pub async fn get_game_details(db: &PgPool, id: &i32) -> Result<GameDetails, GameError> {
+    let result = sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
+                                          FROM game g 
+                                          LEFT JOIN account a1 ON a1.id = g.user_id 
+                                          LEFT JOIN account a2 ON a2.id = g.opponent_id 
+                                          WHERE g.id = $1")
+        .bind(id)
+        .fetch_optional(db)
+        .await
+        .map_err(|err: sqlx::Error| { 
+            debug!("Cannot get game from db!");
+            debug!("{}", err); 
+            GameError::from(err)
+        });
+
+    match result {
+        Ok(None) => Err(GameError::Unknown),
+        Ok(Some(id)) => Ok(id),
+        Err(err) => Err(err),
+    }
+}
+
+pub async fn change_invitation_status(db: &PgPool, id: &i32, status: InvitationStatus) -> Result<PgQueryResult, GameError> {
+    sqlx::query("UPDATE games SET invitation = $1 WHERE id = $2")
+        .bind(status as i16)
+        .bind(id)
+        .execute(db)
+        .await
+        .map_err(|err: sqlx::Error| { 
+            debug!("Cannot save update to db!");
+            debug!("{}", err); 
+            GameError::from(err)
+        })
 }
 
 #[derive(Serialize, Deserialize, sqlx::Type)]
