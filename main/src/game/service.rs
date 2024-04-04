@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use axum::{extract::State, response::{IntoResponse, Response}, Json};
+use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Json};
 use tracing::{debug, info};
 
-use crate::{game::{repository::{get_finished_games, get_games, get_requests, save_game, GameModel}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedForm, AppState};
+use crate::{game::{self, repository::{change_invitation_status, get_finished_games, get_game, get_games, get_requests, save_game, GameModel, InvitationStatus}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedForm, AppState};
 
-use super::GameRequest;
+use super::{AcceptRequest, GameRequest};
 
 pub async fn games(State(state): State<Arc<AppState>>, user: UserData) -> Response {
     info!("List of active games requested…");
@@ -109,4 +109,40 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
     info!("Game {} succesfully created.", id);
 
     return Json(NewGameResponse{game_id: id}).into_response()
+}
+
+pub async fn accept_request(State(state): State<Arc<AppState>>, user: UserData, Path(game_id): Path<i32>, ValidatedForm(request): ValidatedForm<AcceptRequest>) -> Response {
+    info!("Creating new game requested…");
+    let username = user.username;
+    let status = match request.status {
+        game::InvitationStatus::Accepted => InvitationStatus::Accepted,
+        game::InvitationStatus::Rejected => InvitationStatus::Rejected,
+    };
+
+    debug!("Trying to get user {} from db…", username);
+    let query_result = get_user(&state.db, &username).await;
+
+    if let Err(err) = query_result {
+        return err.into_response()
+    }
+    let user = query_result.unwrap();
+
+    debug!("Trying to get game {} from db…", game_id);
+    let query_result = get_game(&state.db, &game_id).await; // TODO
+
+    if let Err(err) = query_result {
+        return err.into_response()
+    }
+    let game = query_result.unwrap();
+
+    debug!("Trying to update invitation status…");
+    let query_result = change_invitation_status(&state.db, &game_id, status).await;
+
+    if let Err(err) = query_result {
+        return err.into_response()
+    }
+
+    info!("Game {} succesfully updated.", game_id);
+
+    return Json(NewGameResponse{game_id}).into_response()
 }

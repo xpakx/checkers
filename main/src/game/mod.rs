@@ -17,3 +17,15 @@ pub struct GameRequest {
 pub struct NewGameResponse {
     pub game_id: i32,
 }
+
+#[derive(Serialize, Deserialize, Validate)]
+#[serde(rename_all = "camelCase")]
+pub struct AcceptRequest {
+    pub status: InvitationStatus,
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum InvitationStatus {
+    Accepted,
+    Rejected,
+}
