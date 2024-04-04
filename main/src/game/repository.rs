@@ -121,6 +121,7 @@ pub struct GameModel {
 
     pub current_state: String,
     pub user_starts: bool,
+    pub user_turn: bool,
     pub user_id: i32,
     pub opponent_id: i32,
 }
@@ -136,6 +137,7 @@ impl Default for GameModel {
             status: GameStatus::NotFinished,
             current_state: String::from("xxxxxxxxxxxx........oooooooooooo"), // xX=black, oO=white, .=empty
             user_starts: true,
+            user_turn: true,
             user_id: 0,
             opponent_id: 0,
         } 
