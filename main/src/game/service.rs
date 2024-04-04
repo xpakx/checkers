@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Json};
 use tracing::{debug, info};
 
-use crate::{game::{self, repository::{change_invitation_status, get_finished_games, get_game, get_games, get_requests, save_game, GameModel, InvitationStatus}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedForm, AppState};
+use crate::{game::{self, error::GameError, repository::{change_invitation_status, get_finished_games, get_game, get_games, get_requests, save_game, GameModel, InvitationStatus}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedForm, AppState};
 
 use super::{AcceptRequest, GameRequest};
 
@@ -111,7 +111,7 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
     return Json(NewGameResponse{game_id: id}).into_response()
 }
 
-pub async fn accept_request(State(state): State<Arc<AppState>>, user: UserData, Path(game_id): Path<i32>, ValidatedForm(request): ValidatedForm<AcceptRequest>) -> Response {
+pub async fn accept_request(State(state): State<Arc<AppState>>, user: UserData, Path(id): Path<i32>, ValidatedForm(request): ValidatedForm<AcceptRequest>) -> Response {
     info!("Creating new game requested…");
     let username = user.username;
     let status = match request.status {
@@ -127,22 +127,32 @@ pub async fn accept_request(State(state): State<Arc<AppState>>, user: UserData, 
     }
     let user = query_result.unwrap();
 
-    debug!("Trying to get game {} from db…", game_id);
-    let query_result = get_game(&state.db, &game_id).await; // TODO
+    debug!("Trying to get game {} from db…", id);
+    let query_result = get_game(&state.db, &id).await;
 
     if let Err(err) = query_result {
         return err.into_response()
     }
     let game = query_result.unwrap();
+    if game.opponent_id != user.id {
+        return GameError::NotOwner.into_response()
+    }
+    if game.invitation != InvitationStatus::Issued {
+        return match game.invitation {
+            InvitationStatus::Accepted => GameError::AlreadyAccepted,
+            InvitationStatus::Rejected => GameError::AlreadyRejected,
+            InvitationStatus::Issued => unreachable!(),
+        }.into_response()
+    }
 
     debug!("Trying to update invitation status…");
-    let query_result = change_invitation_status(&state.db, &game_id, status).await;
+    let query_result = change_invitation_status(&state.db, &id, status).await;
 
     if let Err(err) = query_result {
         return err.into_response()
     }
 
-    info!("Game {} succesfully updated.", game_id);
+    info!("Game {} succesfully updated.", id);
 
-    return Json(NewGameResponse{game_id}).into_response()
+    return Json(NewGameResponse{game_id: id}).into_response()
 }

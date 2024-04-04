@@ -4,6 +4,9 @@ use axum::{http::StatusCode, response::{IntoResponse, Response}};
 pub enum GameError {
     Unknown,
     NotFound,
+    NotOwner,
+    AlreadyRejected,
+    AlreadyAccepted,
 }
 
 impl From<sqlx::Error> for GameError {
@@ -18,6 +21,9 @@ impl IntoResponse for GameError {
         match self {
             GameError::Unknown => (StatusCode::INTERNAL_SERVER_ERROR, "Database error!"),
             GameError::NotFound => (StatusCode::NOT_FOUND, "Game not found!"),
+            GameError::NotOwner => (StatusCode::FORBIDDEN, "You cannot change this request!"),
+            GameError::AlreadyRejected => (StatusCode::BAD_REQUEST, "Request already rejected!"),
+            GameError::AlreadyAccepted => (StatusCode::BAD_REQUEST, "Request already acccepted!"),
         }
         .into_response()
     }
