@@ -85,7 +85,7 @@ pub async fn get_game(db: &PgPool, id: &i32) -> Result<GameModel, GameError> {
         });
 
     match result {
-        Ok(None) => Err(GameError::Unknown),
+        Ok(None) => Err(GameError::NotFound),
         Ok(Some(id)) => Ok(id),
         Err(err) => Err(err),
     }
@@ -107,7 +107,7 @@ pub async fn get_game_details(db: &PgPool, id: &i32) -> Result<GameDetails, Game
         });
 
     match result {
-        Ok(None) => Err(GameError::Unknown),
+        Ok(None) => Err(GameError::NotFound),
         Ok(Some(id)) => Ok(id),
         Err(err) => Err(err),
     }
