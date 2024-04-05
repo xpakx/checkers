@@ -7,7 +7,7 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use serde::{Deserialize, Serialize};
 
 use crate::user::{service::{register, login, refresh_token}, AuthResponse};
-use crate::game::service::{games, archive, requests, new_game, accept_request, game};
+use crate::game::service::{games, archive, requests, new_game, accept_request, game, moves};
 use crate::config::get_config;
 
 mod security;
@@ -57,6 +57,7 @@ async fn main() {
         .route("/game", post(new_game))
         .route("/game/:id/request", post(accept_request))
         .route("/game/:id", get(game))
+        .route("/game/:id/history", get(moves))
         .with_state(Arc::new(state));
 
     info!("Initializing router…");

@@ -127,6 +127,21 @@ pub async fn change_invitation_status(db: &PgPool, id: &i32, status: InvitationS
         })
 }
 
+pub async fn get_moves(db: &PgPool, id: &i32) -> Result<Vec<MoveModel>, GameError> {
+    sqlx::query_as::<Postgres, MoveModel>("SELECT * 
+                                          FROM moves 
+                                          WHERE game_id = ?1 
+                                          ORDER BY timestamp ASC")
+        .bind(id)
+        .fetch_all(db)
+        .await
+        .map_err(|err: sqlx::Error| { 
+            debug!("Db error");
+            debug!("{}", err); 
+            GameError::from(err)
+        })
+}
+
 #[derive(Serialize, Deserialize, sqlx::Type)]
 #[repr(i16)]
 pub enum GameType {
