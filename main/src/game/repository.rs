@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use sqlx::{postgres::PgQueryResult, PgPool, Postgres};
 use tracing::debug;
+use chrono;
 
 use crate::game::error::GameError;
 
@@ -213,4 +214,15 @@ pub struct GameDetails {
     pub opponent_id: Option<i32>,
     pub user: String,
     pub opponent: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, sqlx::FromRow)]
+pub struct MoveModel {
+    pub id: Option<i32>,
+    pub x: i32,
+    pub y: i32,
+    pub current_state: String,
+    created_at: Option<chrono::DateTime<chrono::Utc>>,
+
+    pub game_id: i32,
 }
