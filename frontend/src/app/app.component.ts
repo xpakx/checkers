@@ -7,4 +7,15 @@ import { Component } from '@angular/core';
 })
 export class AppComponent {
   title = 'checkers';
+  registerCard = false;
+
+  constructor() { }
+
+  get logged(): boolean {
+    return localStorage.getItem("username") != null;
+  }
+
+  changeRegisterCard(value: boolean) {
+    this.registerCard = value;
+  }
 }
