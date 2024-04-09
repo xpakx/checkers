@@ -1,3 +1,3 @@
 export interface GameResponse {
-    id: number;
+    gameId: number;
 }

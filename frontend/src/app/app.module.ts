@@ -7,12 +7,16 @@ import { HTTP_INTERCEPTORS, HttpClientModule } from '@angular/common/http';
 import { ModalRegisterComponent } from './auth/modal-register/modal-register.component';
 import { ModalLoginComponent } from './auth/modal-login/modal-login.component';
 import { ErrorInterceptor } from './error/error.interceptor';
+import { MenuComponent } from './main/menu/menu.component';
+import { GameListComponent } from './main/game-list/game-list.component';
 
 @NgModule({
   declarations: [
     AppComponent,
     ModalRegisterComponent,
-    ModalLoginComponent
+    ModalLoginComponent,
+    MenuComponent,
+    GameListComponent
   ],
   imports: [
     BrowserModule,

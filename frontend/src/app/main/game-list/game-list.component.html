@@ -1,0 +1,12 @@
+<ul>
+    <li *ngFor="let game of games">
+        {{ game.id }}
+        <div>
+            {{ game.user }} vs {{ game.opponent}}
+        </div>
+
+        <button *ngIf="requests" (click)="accept(game.id)">Accept</button>
+        <button *ngIf="requests" (click)="reject(game.id)">Reject</button>
+        <button *ngIf="active" (click)="open(game.id)">Open</button>
+    </li>
+</ul>
