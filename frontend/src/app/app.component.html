@@ -5,6 +5,13 @@
     </div>
 </div>
 
+<div class="modal-overlay" *ngIf="openRequestModal">
+    <div class="modal">
+        <app-new-game-modal (new)="closeRequestModal($event)"
+        [ai]="requestModalForAI"></app-new-game-modal>
+    </div>
+</div>
+
 <div class="app">
     <app-menu (openGame)="open($event)" (openGameModal)="openGameModal($event)"></app-menu>
 </div>

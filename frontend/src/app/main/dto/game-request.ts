@@ -1,5 +1,5 @@
 export interface GameRequest {
-    type: "AI" | "USER";
+    type: "AI" | "User";
     opponent?: String;
     rules: "British";
     aiType?: "Random" | "None";

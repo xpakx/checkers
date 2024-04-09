@@ -9,6 +9,7 @@ import { ModalLoginComponent } from './auth/modal-login/modal-login.component';
 import { ErrorInterceptor } from './error/error.interceptor';
 import { MenuComponent } from './main/menu/menu.component';
 import { GameListComponent } from './main/game-list/game-list.component';
+import { NewGameModalComponent } from './main/new-game-modal/new-game-modal.component';
 
 @NgModule({
   declarations: [
@@ -16,7 +17,8 @@ import { GameListComponent } from './main/game-list/game-list.component';
     ModalRegisterComponent,
     ModalLoginComponent,
     MenuComponent,
-    GameListComponent
+    GameListComponent,
+    NewGameModalComponent
   ],
   imports: [
     BrowserModule,
