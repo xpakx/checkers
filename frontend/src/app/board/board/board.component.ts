@@ -8,9 +8,9 @@ import { Component, Input, OnInit } from '@angular/core';
 export class BoardComponent implements OnInit {
   board: ("WhiteKing" | "BlackKing" | "White" | "Black" | "Empty")[][] = 
   [
-    ["White", "Empty", "White", "Empty", "White", "Empty", "White", "Empty"], 
     ["Empty", "White", "Empty", "White", "Empty", "White", "Empty", "White"],
     ["White", "Empty", "White", "Empty", "White", "Empty", "White", "Empty"], 
+    ["Empty", "White", "Empty", "White", "Empty", "White", "Empty", "White"],
 
     ["Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty"],
     ["Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty"],

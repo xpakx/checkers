@@ -1,0 +1,65 @@
+:host {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: row;
+    gap: 30px;
+    margin: 0;
+    flex-grow: 1;
+}
+
+.board {
+    display: flex;
+    gap: 2px;
+    flex-direction: column;
+}
+
+.board .row {
+    display: flex;
+    gap: 2px;
+    flex-direction: row;
+}
+
+.board .cell {
+    border: 1px solid #0077cc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+}
+
+.board .row:nth-child(odd) .cell:nth-child(odd) {
+    background-color: #fff;
+}
+
+.board .row:nth-child(odd) .cell:nth-child(even) {
+    background-color: #b3d4fc;
+}
+
+.board .row:nth-child(even) .cell:nth-child(even) {
+    background-color: #fff;
+}
+
+.board .row:nth-child(even) .cell:nth-child(odd) {
+    background-color: #b3d4fc;
+}
+
+.board .cell.illegal {
+    background-color: #ff9999;
+}
+
+.board .cell.last {
+    background-color: #0077cc;
+}
+
+.msg {
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+.msg.error {
+    color: red;
+}

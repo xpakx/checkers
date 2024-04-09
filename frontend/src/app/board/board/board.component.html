@@ -1,7 +1,7 @@
 <div class="board">
-    <ng-container *ngFor="let row of board; index as i">
+    <div class="row" *ngFor="let row of board; index as i">
         <div *ngFor="let cell of row; index as j" class="cell" id="cell{{i}}{{j}}">
             {{cell | field}}
         </div>
-    </ng-container>
+    <div>
 </div>
