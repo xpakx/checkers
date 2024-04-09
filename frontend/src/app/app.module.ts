@@ -5,11 +5,13 @@ import { AppComponent } from './app.component';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { ModalRegisterComponent } from './auth/modal-register/modal-register.component';
+import { ModalLoginComponent } from './auth/modal-login/modal-login.component';
 
 @NgModule({
   declarations: [
     AppComponent,
-    ModalRegisterComponent
+    ModalRegisterComponent,
+    ModalLoginComponent
   ],
   imports: [
     BrowserModule,
