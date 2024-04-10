@@ -5,11 +5,11 @@ use bcrypt::hash;
 use jsonwebtoken::{decode, DecodingKey, Validation};
 use tracing::{debug, info};
 
-use crate::{security::{get_token, verify_password, TokenClaims}, user::{repository::{get_user, save_user}, AuthResponse}, validation::ValidatedForm, AppState};
+use crate::{security::{get_token, verify_password, TokenClaims}, user::{repository::{get_user, save_user}, AuthResponse}, validation::ValidatedJson, AppState};
 
 use super::{RefreshRequest, UserRequest, AuthRequest};
 
-pub async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): ValidatedForm<UserRequest>) -> Response {
+pub async fn register(State(state): State<Arc<AppState>>, ValidatedJson(user): ValidatedJson<UserRequest>) -> Response {
     info!("Creating new user requested…");
     let username = user.username.unwrap();
     let password = hash(user.password.unwrap(), 10).unwrap();
@@ -31,7 +31,7 @@ pub async fn register(State(state): State<Arc<AppState>>, ValidatedForm(user): V
 
 pub async fn login(
     State(state): State<Arc<AppState>>,
-    ValidatedForm(user): ValidatedForm<AuthRequest>) -> impl IntoResponse {
+    ValidatedJson(user): ValidatedJson<AuthRequest>) -> impl IntoResponse {
     info!("Authentication requested…");
     let username = user.username.unwrap();
     let password = user.password.unwrap();
@@ -48,7 +48,7 @@ pub async fn login(
 
 pub async fn refresh_token(
     State(state): State<Arc<AppState>>,
-    ValidatedForm(request): ValidatedForm<RefreshRequest>) -> impl IntoResponse {
+    ValidatedJson(request): ValidatedJson<RefreshRequest>) -> impl IntoResponse {
     info!("Refreshing token requested…");
     let token = request.token.unwrap();
     let claims = decode::<TokenClaims>(

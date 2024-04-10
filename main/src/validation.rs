@@ -1,14 +1,14 @@
 use core::fmt;
 
-use axum::{async_trait, extract::{rejection::FormRejection, FromRequest, Request}, http::StatusCode, response::{IntoResponse, Response}, Form};
+use axum::{async_trait, extract::{rejection::{FormRejection, JsonRejection}, FromRequest, Request}, http::StatusCode, response::{IntoResponse, Response}, Form, Json};
 use serde::de::DeserializeOwned;
 use validator::Validate;
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct ValidatedForm<T>(pub T);
+pub struct ValidatedJson<T>(pub T);
 
 #[async_trait]
-impl<T, S> FromRequest<S> for ValidatedForm<T>
+impl<T, S> FromRequest<S> for ValidatedJson<T>
 where
 T: DeserializeOwned + Validate,
 S: Send + Sync,
@@ -17,16 +17,16 @@ Form<T>: FromRequest<S, Rejection = FormRejection>,
     type Rejection = ValidationError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let Form(value) = Form::<T>::from_request(req, state).await?;
+        let Json(value) = Json::<T>::from_request(req, state).await?;
         value.validate()?;
-        Ok(ValidatedForm(value))
+        Ok(ValidatedJson(value))
     }
 }
 
 #[derive(Debug)]
 pub enum ValidationError {
     ValidationError(validator::ValidationErrors),
-    AxumFormRejection(FormRejection),
+    AxumFormRejection(JsonRejection),
 }
 
 impl From<validator::ValidationErrors> for ValidationError {
@@ -35,8 +35,8 @@ impl From<validator::ValidationErrors> for ValidationError {
     }
 }
 
-impl From<FormRejection> for ValidationError {
-    fn from(error: FormRejection) -> Self {
+impl From<JsonRejection> for ValidationError {
+    fn from(error: JsonRejection) -> Self {
         ValidationError::AxumFormRejection(error)
     }
 }

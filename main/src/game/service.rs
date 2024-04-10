@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Json};
 use tracing::{debug, info};
 
-use crate::{game::{self, error::GameError, repository::{change_invitation_status, get_finished_games, get_game, get_game_details, get_games, get_moves, get_requests, save_game, GameModel, InvitationStatus}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedForm, AppState};
+use crate::{game::{self, error::GameError, repository::{change_invitation_status, get_finished_games, get_game, get_game_details, get_games, get_moves, get_requests, save_game, GameModel, InvitationStatus}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedJson, AppState};
 
 use super::{AcceptRequest, GameRequest};
 
@@ -77,7 +77,7 @@ pub async fn requests(State(state): State<Arc<AppState>>, user: UserData) -> Res
 }
 
 // TODO
-pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, ValidatedForm(game): ValidatedForm<GameRequest>) -> Response {
+pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, ValidatedJson(game): ValidatedJson<GameRequest>) -> Response {
     info!("Creating new game requested…");
     let username = user.username;
     let opponent = game.opponent.unwrap();
@@ -111,7 +111,7 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
     return Json(NewGameResponse{game_id: id}).into_response()
 }
 
-pub async fn accept_request(State(state): State<Arc<AppState>>, user: UserData, Path(id): Path<i32>, ValidatedForm(request): ValidatedForm<AcceptRequest>) -> Response {
+pub async fn accept_request(State(state): State<Arc<AppState>>, user: UserData, Path(id): Path<i32>, ValidatedJson(request): ValidatedJson<AcceptRequest>) -> Response {
     info!("Creating new game requested…");
     let username = user.username;
     let status = match request.status {
