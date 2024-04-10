@@ -1,6 +1,6 @@
 use std::{fs::File, io::Read, sync::Arc};
 
-use axum::{body::{to_bytes, Body, Bytes}, extract::{Request, State}, http::{HeaderMap, StatusCode}, response::{IntoResponse, Response}, routing::get, Router};
+use axum::{body::{to_bytes, Body, Bytes}, extract::{Request, State}, http::{HeaderMap, StatusCode}, response::{IntoResponse, Response}, routing::{get, post}, Router};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
@@ -39,6 +39,7 @@ async fn main() {
 
     let app = Router::new()
         .route("/*path", get(handle))
+        .route("/*path", post(handle))
         .with_state(Arc::new(state))
         .layer(cors);
 
