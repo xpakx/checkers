@@ -1,8 +1,9 @@
 use std::{fs::File, io::Read, sync::Arc};
 
-use axum::{Router, routing::get, extract::{Request, State}, body::{Body, to_bytes, Bytes}, response::{Response, IntoResponse}, http::{StatusCode, HeaderMap}};
+use axum::{body::{to_bytes, Body, Bytes}, extract::{Request, State}, http::{HeaderMap, StatusCode}, response::{IntoResponse, Response}, routing::get, Router};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
+use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, debug};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -30,10 +31,16 @@ async fn main() {
     services.push(ServiceConfig { path: String::from("/play"), host: String::from("http://localhost"), port: 8080 });
 
     let state = AppState { client, services };
+    let origins = ["http://localhost:4200".parse().unwrap(),];
+    let cors = CorsLayer::new()
+        .allow_origin(origins)
+        .allow_headers(Any)
+        .allow_methods(Any);
 
     let app = Router::new()
         .route("/*path", get(handle))
-        .with_state(Arc::new(state));
+        .with_state(Arc::new(state))
+        .layer(cors);
 
     info!("Initializing router…");
     let host = "0.0.0.0";
