@@ -5,7 +5,7 @@ use chrono;
 
 use crate::game::error::GameError;
 
-pub async fn get_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, GameError> {
+pub async fn get_games(db: &PgPool, user_id: &i64) -> Result<Vec<GameDetails>, GameError> {
     sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
                                           FROM game g 
                                           LEFT JOIN account a1 ON a1.id = g.user_id 
@@ -21,7 +21,7 @@ pub async fn get_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, G
         })
 }
 
-pub async fn get_finished_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, GameError> {
+pub async fn get_finished_games(db: &PgPool, user_id: &i64) -> Result<Vec<GameDetails>, GameError> {
     sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
                                           FROM game g 
                                           LEFT JOIN account a1 ON a1.id = g.user_id 
@@ -37,7 +37,7 @@ pub async fn get_finished_games(db: &PgPool, user_id: &i32) -> Result<Vec<GameDe
         })
 }
 
-pub async fn get_requests(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>, GameError> {
+pub async fn get_requests(db: &PgPool, user_id: &i64) -> Result<Vec<GameDetails>, GameError> {
     sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
                                           FROM game g 
                                           LEFT JOIN account a1 ON a1.id = g.user_id 
@@ -53,7 +53,7 @@ pub async fn get_requests(db: &PgPool, user_id: &i32) -> Result<Vec<GameDetails>
         })
 }
 
-pub async fn save_game(db: &PgPool, game: GameModel) -> Result<i32, GameError> {
+pub async fn save_game(db: &PgPool, game: GameModel) -> Result<i64, GameError> {
     let result = sqlx::query_scalar("INSERT INTO game (user_id, opponent_id, invitation, status) VALUES ($1, $2, $3, $4) RETURNING id")
         .bind(&game.user_id)
         .bind(&game.opponent_id)
@@ -74,7 +74,7 @@ pub async fn save_game(db: &PgPool, game: GameModel) -> Result<i32, GameError> {
     }
 }
 
-pub async fn get_game(db: &PgPool, id: &i32) -> Result<GameModel, GameError> {
+pub async fn get_game(db: &PgPool, id: &i64) -> Result<GameModel, GameError> {
     let result = sqlx::query_as::<Postgres, GameModel>("SELECT * FROM game WHERE id = $1")
         .bind(id)
         .fetch_optional(db)
@@ -92,7 +92,7 @@ pub async fn get_game(db: &PgPool, id: &i32) -> Result<GameModel, GameError> {
     }
 }
 
-pub async fn get_game_details(db: &PgPool, id: &i32) -> Result<GameDetails, GameError> {
+pub async fn get_game_details(db: &PgPool, id: &i64) -> Result<GameDetails, GameError> {
     let result = sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
                                           FROM game g 
                                           LEFT JOIN account a1 ON a1.id = g.user_id 
@@ -114,7 +114,7 @@ pub async fn get_game_details(db: &PgPool, id: &i32) -> Result<GameDetails, Game
     }
 }
 
-pub async fn change_invitation_status(db: &PgPool, id: &i32, status: InvitationStatus) -> Result<PgQueryResult, GameError> {
+pub async fn change_invitation_status(db: &PgPool, id: &i64, status: InvitationStatus) -> Result<PgQueryResult, GameError> {
     sqlx::query("UPDATE games SET invitation = $1 WHERE id = $2")
         .bind(status as i16)
         .bind(id)
@@ -127,7 +127,7 @@ pub async fn change_invitation_status(db: &PgPool, id: &i32, status: InvitationS
         })
 }
 
-pub async fn get_moves(db: &PgPool, id: &i32) -> Result<Vec<MoveModel>, GameError> {
+pub async fn get_moves(db: &PgPool, id: &i64) -> Result<Vec<MoveModel>, GameError> {
     sqlx::query_as::<Postgres, MoveModel>("SELECT * 
                                           FROM moves 
                                           WHERE game_id = ?1 
@@ -181,7 +181,7 @@ pub enum GameStatus {
 
 #[derive(Serialize, Deserialize, sqlx::FromRow)]
 pub struct GameModel {
-    pub id: Option<i32>,
+    pub id: Option<i64>,
     pub invitation: InvitationStatus,
     pub game_type: GameType,
     pub ruleset: RuleSet,
@@ -191,8 +191,8 @@ pub struct GameModel {
     pub current_state: String,
     pub user_starts: bool,
     pub user_turn: bool,
-    pub user_id: i32,
-    pub opponent_id: i32,
+    pub user_id: i64,
+    pub opponent_id: i64,
 }
 
 impl Default for GameModel {
@@ -215,7 +215,7 @@ impl Default for GameModel {
 
 #[derive(Serialize, Deserialize, sqlx::FromRow)]
 pub struct GameDetails {
-    pub id: i32,
+    pub id: i64,
     pub invitation: InvitationStatus,
     pub game_type: GameType,
     pub ruleset: RuleSet,
@@ -225,8 +225,8 @@ pub struct GameDetails {
     pub current_state: String,
     pub user_starts: bool,
     pub user_turn: bool,
-    pub user_id: i32,
-    pub opponent_id: Option<i32>,
+    pub user_id: i64,
+    pub opponent_id: Option<i64>,
     pub user: String,
     pub opponent: Option<String>,
 }
@@ -239,5 +239,5 @@ pub struct MoveModel {
     pub current_state: String,
     created_at: Option<chrono::DateTime<chrono::Utc>>,
 
-    pub game_id: i32,
+    pub game_id: i64,
 }

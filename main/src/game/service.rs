@@ -111,7 +111,7 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
     return Json(NewGameResponse{game_id: id}).into_response()
 }
 
-pub async fn accept_request(State(state): State<Arc<AppState>>, user: UserData, Path(id): Path<i32>, ValidatedJson(request): ValidatedJson<AcceptRequest>) -> Response {
+pub async fn accept_request(State(state): State<Arc<AppState>>, user: UserData, Path(id): Path<i64>, ValidatedJson(request): ValidatedJson<AcceptRequest>) -> Response {
     info!("Creating new game requested…");
     let username = user.username;
     let status = match request.status {
@@ -157,7 +157,7 @@ pub async fn accept_request(State(state): State<Arc<AppState>>, user: UserData, 
     return Json(NewGameResponse{game_id: id}).into_response()
 }
 
-pub async fn game(State(state): State<Arc<AppState>>, _user: UserData, Path(id): Path<i32>) -> Response {
+pub async fn game(State(state): State<Arc<AppState>>, _user: UserData, Path(id): Path<i64>) -> Response {
     info!("Getting game requested…");
 
     debug!("Trying to get game {} from db…", id);
@@ -171,7 +171,7 @@ pub async fn game(State(state): State<Arc<AppState>>, _user: UserData, Path(id):
     return Json(game).into_response()
 }
 
-pub async fn moves(State(state): State<Arc<AppState>>, _user: UserData, Path(id): Path<i32>) -> Response {
+pub async fn moves(State(state): State<Arc<AppState>>, _user: UserData, Path(id): Path<i64>) -> Response {
     info!("List of moves requested…");
 
     debug!("Trying to fetch moves for game {} from db…", id);

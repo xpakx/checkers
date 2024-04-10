@@ -66,7 +66,7 @@ impl IntoResponse for ValidationError {
         // TODO
         match self {
             ValidationError::ValidationError(_) => {
-                let message = format!("Input validation error: [{self}]");
+                let message = format!("Input validation error: {}", self.to_string());
                 (StatusCode::BAD_REQUEST, message)
             }
             ValidationError::AxumFormRejection(_) => (StatusCode::BAD_REQUEST, self.to_string()),

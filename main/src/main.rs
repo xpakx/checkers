@@ -81,7 +81,7 @@ pub struct AppState {
 #[derive(Serialize, Deserialize, sqlx::FromRow)]
 #[allow(non_snake_case)]
 struct UserModel {
-    id: i32,
+    id: i64,
     username: String,
     password: String,
 }
