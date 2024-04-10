@@ -1,0 +1,24 @@
+
+button {
+  color: #fff;
+  background-color: var(--surface-03);
+  border: none;
+  display: inline-block;
+  padding: 5px 10px;
+  margin: 2px;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+button:hover {
+  background-color: var(--surface-04);
+}
+
+button:active {
+  background-color: var(--surface-04);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}

@@ -1,6 +1,6 @@
 <div class="board">
     <div class="row" *ngFor="let row of board; index as i">
-        <div *ngFor="let cell of row; index as j" class="cell" id="cell{{i}}{{j}}">
+        <div *ngFor="let cell of row; index as j" class="cell" [class.red]="cell=='Black' || cell=='BlackKing'" id="cell{{i}}{{j}}">
             {{cell | field}}
         </div>
     <div>

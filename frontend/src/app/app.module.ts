@@ -12,6 +12,7 @@ import { GameListComponent } from './main/game-list/game-list.component';
 import { NewGameModalComponent } from './main/new-game-modal/new-game-modal.component';
 import { BoardComponent } from './board/board/board.component';
 import { FieldPipe } from './board/field.pipe';
+import { ButtonComponent } from './elements/button/button.component';
 
 @NgModule({
   declarations: [
@@ -22,7 +23,8 @@ import { FieldPipe } from './board/field.pipe';
     GameListComponent,
     NewGameModalComponent,
     BoardComponent,
-    FieldPipe
+    FieldPipe,
+    ButtonComponent
   ],
   imports: [
     BrowserModule,

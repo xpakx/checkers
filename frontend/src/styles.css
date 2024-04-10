@@ -1,1 +1,21 @@
 /* You can add global styles to this file, and also import other style files */
+:root {
+  --main-bg-color: #4b2c36;
+  --main-text-color: #facba7;
+  --surface-01: #68493d;
+  --surface-02: #68413d;
+  --surface-03: #683d65;
+  --surface-04: #864f82;
+  --white-cell-color: #de9d83;
+  --red-cell-color: #4b302c;
+  --red: #a6302c;
+  --white: #c9b0af;
+
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    background-color: var(--main-bg-color);
+    color: var(--main-text-color);
+}

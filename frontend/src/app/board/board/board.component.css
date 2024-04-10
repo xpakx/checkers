@@ -10,41 +10,44 @@
 
 .board {
     display: flex;
-    gap: 2px;
     flex-direction: column;
+    border: 3px solid var(--surface-02);
 }
 
 .board .row {
     display: flex;
-    gap: 2px;
     flex-direction: row;
 }
 
 .board .cell {
-    border: 1px solid #0077cc;
     display: flex;
     justify-content: center;
     align-items: center;
     font-size: 20px;
     cursor: pointer;
-    width: 40px;
-    height: 40px;
+    width: 70px;
+    height: 70px;
+    color: var(--white);
+}
+
+.board .cell.red {
+    color: var(--red);
 }
 
 .board .row:nth-child(odd) .cell:nth-child(odd) {
-    background-color: #fff;
+    background-color: var(--white-cell-color);
 }
 
 .board .row:nth-child(odd) .cell:nth-child(even) {
-    background-color: #b3d4fc;
+    background-color: var(--red-cell-color);
 }
 
 .board .row:nth-child(even) .cell:nth-child(even) {
-    background-color: #fff;
+    background-color: var(--white-cell-color);
 }
 
 .board .row:nth-child(even) .cell:nth-child(odd) {
-    background-color: #b3d4fc;
+    background-color: var(--red-cell-color);
 }
 
 .board .cell.illegal {

@@ -1,10 +1,10 @@
 <div class="buttons">
-    <button (click)="newGame()">New Game</button>
-    <button (click)="newAIGame()">vs. AI</button>
+    <app-button (click)="newGame()">New Game</app-button>
+    <app-button (click)="newAIGame()">vs. AI</app-button>
     <div class="separator">❦</div>
-    <button (click)="getGames()">Games</button>
-    <button (click)="getRequests()">Requests</button>
-    <button (click)="getArchive()">History</button>
+    <app-button (click)="getGames()">Games</app-button>
+    <app-button (click)="getRequests()">Requests</app-button>
+    <app-button (click)="getArchive()">History</app-button>
 </div>
 <div class="games">
     <app-game-list [games]="games" [active]="activeView" [requests]="requestView" (openGame)="open($event)"></app-game-list>
