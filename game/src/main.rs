@@ -1,9 +1,12 @@
+use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 use tracing::{debug, info};
 use std::sync::{Arc, RwLock};
-use axum::{extract::{ws::{Message, WebSocket}, State, WebSocketUpgrade}, response::IntoResponse, routing::get, Router};
+use axum::{extract::{ws::{Message, WebSocket}, FromRef, FromRequestParts, State, WebSocketUpgrade}, http::{request::Parts, StatusCode}, response::{IntoResponse, Response}, routing::get, Router};
+use axum::async_trait;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use futures::{sink::SinkExt, stream::StreamExt};
+use jsonwebtoken::{decode, DecodingKey, Validation};
 
 #[tokio::main]
 async fn main() {
@@ -41,7 +44,7 @@ pub struct AppState {
     tx: broadcast::Sender<Msg>,
 }
 
-async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>) -> impl IntoResponse {
+async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>, _user: UserData) -> impl IntoResponse {
     ws.on_upgrade(|socket| websocket(socket, state))
 }
 
@@ -89,4 +92,86 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
         _ = (&mut send_task) => recv_task.abort(),
         _ = (&mut recv_task) => send_task.abort(),
     };
+}
+
+
+
+
+pub struct UserData {
+    pub username: String,
+}
+
+
+#[derive(Debug)]
+pub enum TokenError {
+    Expired,
+    Malformed,
+    RefreshToken,
+    MissingToken,
+}
+
+impl IntoResponse for TokenError {
+    fn into_response(self) -> Response {
+        // TODO
+        match self {
+            TokenError::Expired => (StatusCode::FORBIDDEN, "Token expired"),
+            TokenError::Malformed => (StatusCode::FORBIDDEN, "Malformed token"),
+            TokenError::RefreshToken => (StatusCode::FORBIDDEN, "Cannot use refresh token for auth"),
+            TokenError::MissingToken => (StatusCode::FORBIDDEN, "No token"),
+        }
+        .into_response()
+    }
+}
+
+#[async_trait]
+impl<S> FromRequestParts<S> for UserData
+where
+    S: Send + Sync,
+    Arc<AppState>: FromRef<S>,
+{
+    type Rejection = TokenError;
+
+    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
+        let auth_header = parts.headers.get("Authorization").ok_or(TokenError::MissingToken)?;
+        let token = match auth_header.to_str() {
+            Ok(header_value) => {
+                if header_value.starts_with("Bearer ") {
+                    header_value.trim_start_matches("Bearer ").to_string()
+                } else {
+                    return Err(TokenError::Malformed);
+                }
+            }
+            Err(_) => return Err(TokenError::Malformed),
+        };
+
+        let state: Arc<AppState> = Arc::from_ref(state);
+        let claims = decode::<TokenClaims>(
+            &token,
+            &DecodingKey::from_secret(state.jwt.as_ref()),
+            &Validation::default(),
+            );
+
+        let claims = match claims {
+            Ok(c) => c,
+            Err(_) => return Err(TokenError::Malformed),
+        };
+
+        if claims.claims.exp < (chrono::Utc::now().timestamp() as usize) {
+            return Err(TokenError::Expired);
+        }
+
+        if claims.claims.refresh {
+            return Err(TokenError::RefreshToken);
+        }
+
+        return Ok(UserData { username: claims.claims.sub });
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TokenClaims {
+    pub sub: String,
+    pub iat: usize,
+    pub exp: usize,
+    pub refresh: bool,
 }
