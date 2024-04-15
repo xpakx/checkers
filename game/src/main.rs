@@ -44,8 +44,8 @@ pub struct AppState {
     tx: broadcast::Sender<Msg>,
 }
 
-async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>, _user: UserData) -> impl IntoResponse {
-    ws.on_upgrade(|socket| websocket(socket, state))
+async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>, user: UserData) -> impl IntoResponse {
+    ws.on_upgrade(|socket| websocket(socket, state, user.username))
 }
 
 #[derive(Clone)]
@@ -56,13 +56,12 @@ pub struct Msg {
     author: Option<String>,
 }
 
-async fn websocket(stream: WebSocket, state: Arc<AppState>) {
+async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
     let (mut sender, mut receiver) = stream.split();
 
     let mut rx = state.tx.subscribe();
 
     let room = Arc::new(RwLock::new(0));
-    let username = String::from("test");
 
     let rm_send = room.clone();
 
@@ -94,13 +93,9 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     };
 }
 
-
-
-
 pub struct UserData {
     pub username: String,
 }
-
 
 #[derive(Debug)]
 pub enum TokenError {
