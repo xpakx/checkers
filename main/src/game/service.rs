@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Json};
 use tracing::{debug, info};
 
-use crate::{game::{self, error::GameError, repository::{change_invitation_status, get_finished_games, get_game, get_game_details, get_games, get_moves, get_requests, save_game, GameModel, InvitationStatus}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedJson, AppState};
+use crate::{game::{self, error::GameError, repository::{change_invitation_status, get_finished_games, get_game, get_game_details, get_games, get_moves, get_requests, save_game, AIType, GameModel, GameType, InvitationStatus, RuleSet}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedJson, AppState};
 
 use super::{AcceptRequest, GameRequest};
 
@@ -80,7 +80,20 @@ pub async fn requests(State(state): State<Arc<AppState>>, user: UserData) -> Res
 pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, ValidatedJson(game): ValidatedJson<GameRequest>) -> Response {
     info!("Creating new game requested…");
     let username = user.username;
-    let opponent = game.opponent.unwrap();
+    let ruleset = match game.rules.unwrap() {
+        game::Rules::British => RuleSet::British,
+    };
+    let game_type = match game.game_type.unwrap() {
+        game::GameType::User => GameType::User,
+        game::GameType::AI => GameType::AI,
+    };
+    let ai_type = match game.ai_type {
+        None => AIType::None,
+        Some(ai) => match ai {
+            game::AIType::None => AIType::None,
+            game::AIType::Random => AIType::Random,
+        }
+    };
 
     debug!("Trying to get user {} from db…", username);
     let query_result = get_user(&state.db, &username).await;
@@ -90,16 +103,30 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
     }
     let user = query_result.unwrap();
 
-    debug!("Trying to get opponent {} from db…", opponent);
-    let query_result = get_user(&state.db, &opponent).await;
+    let opponent_id = match game.opponent {
+        None => None,
+        Some(id) => {
+            debug!("Trying to get opponent {} from db…", id);
+            let query_result = get_user(&state.db, &id).await;
 
-    if let Err(err) = query_result {
-        return err.into_response()
-    }
-    let opponent = query_result.unwrap();
+            if let Err(err) = query_result {
+                return err.into_response()
+            }
+            let opponent = query_result.unwrap();
+            Some(opponent.id)
+        }
+    };
 
     debug!("Trying to add game to db…");
-    let query_result = save_game(&state.db, GameModel { user_id: user.id, opponent_id: opponent.id, ..Default::default() }).await;
+    let query_result = save_game(&state.db, 
+        GameModel { 
+            user_id: user.id, 
+            opponent_id,
+            ruleset,
+            game_type,
+            ai_type,
+            ..Default::default() 
+        }).await;
 
     if let Err(err) = query_result {
         return err.into_response()
@@ -134,7 +161,10 @@ pub async fn accept_request(State(state): State<Arc<AppState>>, user: UserData, 
         return err.into_response()
     }
     let game = query_result.unwrap();
-    if game.opponent_id != user.id {
+    let Some(opponent_id) = game.opponent_id else {
+        return GameError::NotOwner.into_response()
+    };
+    if opponent_id != user.id {
         return GameError::NotOwner.into_response()
     }
     if game.invitation != InvitationStatus::Issued {

@@ -159,6 +159,7 @@ pub enum RuleSet {
 #[repr(i16)]
 pub enum AIType {
     None = 0,
+    Random = 1,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, sqlx::Type)]
@@ -192,7 +193,7 @@ pub struct GameModel {
     pub user_starts: bool,
     pub user_turn: bool,
     pub user_id: i64,
-    pub opponent_id: i64,
+    pub opponent_id: Option<i64>,
 }
 
 impl Default for GameModel {
@@ -208,7 +209,7 @@ impl Default for GameModel {
             user_starts: true,
             user_turn: true,
             user_id: 0,
-            opponent_id: 0,
+            opponent_id: None,
         } 
     } 
 }
