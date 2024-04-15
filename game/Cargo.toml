@@ -7,7 +7,10 @@ edition = "2021"
 
 [dependencies]
 axum = { version = "0.7.5", features = ["ws"] }
+chrono = { version = "0.4.38", features = ["serde"] }
 futures = "0.3.30"
+jsonwebtoken = "9.3.0"
+serde = { version = "1.0.197", features = ["derive"] }
 tokio = { version = "1.37.0", features = ["full"] }
 tokio-tungstenite = "0.21.0"
 tracing = "0.1.40"
