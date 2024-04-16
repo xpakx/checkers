@@ -14,4 +14,8 @@ export class ToastService {
   createToast(toast: Toast) {
     this.toastSubject.next(toast);
   }
+
+  ngOnDestroy(): void {
+    this.toastSubject.complete();
+  }
 }

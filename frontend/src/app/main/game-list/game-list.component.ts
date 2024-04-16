@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { Game } from '../dto/game';
 import { GameManagementService } from '../game-management.service';
+import { ToastService } from 'src/app/elements/toast.service';
 
 @Component({
   selector: 'app-game-list',
@@ -15,7 +16,7 @@ export class GameListComponent implements OnInit {
 
   @Output() openGame: EventEmitter<number> = new EventEmitter<number>();
 
-  constructor(private gameService: GameManagementService) { }
+  constructor(private gameService: GameManagementService, private toast: ToastService) { }
 
   ngOnInit(): void {
   }
@@ -30,6 +31,7 @@ export class GameListComponent implements OnInit {
 
   onAccept(gameId: number) {
     this.open(gameId);
+    this.toast.createToast({message: "Request accepted", id: `rejection-${gameId}`, type: "info"});
   }
 
   reject(gameId: number) {
@@ -43,10 +45,11 @@ export class GameListComponent implements OnInit {
 
   onReject(gameId: number) {
     this.games = this.games.filter((game) => game.id != gameId);
+    this.toast.createToast({message: "Request rejected", id: `rejection-${gameId}`, type: "info"});
   }
 
   onError(err: HttpErrorResponse) {
-    // TODO
+    this.toast.createToast({message: err.error, id: `error-${new Date().toTimeString}`, type: "error"});
   }
 
   open(gameId: number) {

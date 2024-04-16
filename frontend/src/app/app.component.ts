@@ -49,15 +49,14 @@ export class AppComponent {
   onRequestSent(game: GameResponse, request: GameRequest) {
     if (request.type == "AI") {
       this.open(game.gameId);
-      this.toast.createToast({message: "New AI game.", id: `new-game-${game.gameId}`});
+      this.toast.createToast({message: "New AI game.", id: `new-game-${game.gameId}`, type: "info"});
     } else {
-      // TODO
-      console.log(`${request.opponent} invited to game`)
+      this.toast.createToast({message: `User ${request.opponent} invited to game.`, id: `new-game-${game.gameId}`, type: "info"});
     }
   }
 
   onError(err: HttpErrorResponse) {
-    // TODO
+    this.toast.createToast({message: err.error, id: `error-${new Date().toTimeString}`, type: "error"});
     console.log(err);
   }
 }

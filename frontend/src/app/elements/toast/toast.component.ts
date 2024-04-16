@@ -20,7 +20,7 @@ export class ToastComponent implements OnInit {
   }
 
   ngOnDestroy(): void {
-    this.toastSub?.unsubscribe;
+    this.toastSub?.unsubscribe();
   }
 
   onToast(toast: Toast) {
