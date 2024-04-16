@@ -66,7 +66,7 @@ impl IntoResponse for TokenError {
     fn into_response(self) -> Response {
         // TODO
         match self {
-            TokenError::Expired => (StatusCode::FORBIDDEN, "Token expired"),
+            TokenError::Expired => (StatusCode::UNAUTHORIZED, "Token expired"),
             TokenError::Malformed => (StatusCode::FORBIDDEN, "Malformed token"),
             TokenError::RefreshToken => (StatusCode::FORBIDDEN, "Cannot use refresh token for auth"),
             TokenError::MissingToken => (StatusCode::FORBIDDEN, "No token"),
@@ -105,12 +105,11 @@ where
 
         let claims = match claims {
             Ok(c) => c,
-            Err(_) => return Err(TokenError::Malformed),
+            Err(err) => match &err.kind() {
+                jsonwebtoken::errors::ErrorKind::ExpiredSignature => return Err(TokenError::Expired),
+                _ => return Err(TokenError::Malformed),
+            },
         };
-
-        if claims.claims.exp < (chrono::Utc::now().timestamp() as usize) {
-            return Err(TokenError::Expired);
-        }
 
         if claims.claims.refresh {
             return Err(TokenError::RefreshToken);
