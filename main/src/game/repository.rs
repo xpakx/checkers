@@ -124,7 +124,7 @@ pub async fn get_game_details(db: &PgPool, id: &i64) -> Result<GameDetails, Game
 }
 
 pub async fn change_invitation_status(db: &PgPool, id: &i64, status: InvitationStatus) -> Result<PgQueryResult, GameError> {
-    sqlx::query("UPDATE games SET invitation = $1 WHERE id = $2")
+    sqlx::query("UPDATE game SET invitation = $1 WHERE id = $2")
         .bind(status as i16)
         .bind(id)
         .execute(db)
