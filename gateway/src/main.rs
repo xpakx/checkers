@@ -25,6 +25,7 @@ async fn main() {
     services.push(ServiceConfig { path: String::from("/game"), host: String::from("http://localhost"), port: 8080 });
     services.push(ServiceConfig { path: String::from("/authenticate"), host: String::from("http://localhost"), port: 8080 });
     services.push(ServiceConfig { path: String::from("/register"), host: String::from("http://localhost"), port: 8080 });
+    services.push(ServiceConfig { path: String::from("/refresh"), host: String::from("http://localhost"), port: 8080 });
 
     services.push(ServiceConfig { path: String::from("/app"), host: String::from("http://localhost"), port: 8080 });
     services.push(ServiceConfig { path: String::from("/topic"), host: String::from("http://localhost"), port: 8080 });
