@@ -94,6 +94,10 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
             game::AIType::Random => AIType::Random,
         }
     };
+    let invitation = match game_type {
+        GameType::AI => InvitationStatus::Accepted,
+        GameType::User => InvitationStatus::Issued,
+    };
 
     debug!("Trying to get user {} from db…", username);
     let query_result = get_user(&state.db, &username).await;
@@ -125,6 +129,7 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
             ruleset,
             game_type,
             ai_type,
+            invitation,
             ..Default::default() 
         }).await;
 
