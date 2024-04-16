@@ -3,6 +3,7 @@ import { Component } from '@angular/core';
 import { GameRequest } from './main/dto/game-request';
 import { GameResponse } from './main/dto/game-response';
 import { GameManagementService } from './main/game-management.service';
+import { ToastService } from './elements/toast.service';
 
 @Component({
   selector: 'app-root',
@@ -16,7 +17,7 @@ export class AppComponent {
   openRequestModal: boolean = false;
   requestModalForAI: boolean = false;
 
-  constructor(private gameService: GameManagementService) { }
+  constructor(private gameService: GameManagementService, private toast: ToastService) { }
 
   get logged(): boolean {
     return localStorage.getItem("username") != null;
@@ -48,6 +49,7 @@ export class AppComponent {
   onRequestSent(game: GameResponse, request: GameRequest) {
     if (request.type == "AI") {
       this.open(game.gameId);
+      this.toast.createToast({message: "New AI game.", id: `new-game-${game.gameId}`});
     } else {
       // TODO
       console.log(`${request.opponent} invited to game`)

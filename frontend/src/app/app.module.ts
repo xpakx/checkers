@@ -13,6 +13,7 @@ import { NewGameModalComponent } from './main/new-game-modal/new-game-modal.comp
 import { BoardComponent } from './board/board/board.component';
 import { FieldPipe } from './board/field.pipe';
 import { ButtonComponent } from './elements/button/button.component';
+import { ToastComponent } from './elements/toast/toast.component';
 
 @NgModule({
   declarations: [
@@ -24,7 +25,8 @@ import { ButtonComponent } from './elements/button/button.component';
     NewGameModalComponent,
     BoardComponent,
     FieldPipe,
-    ButtonComponent
+    ButtonComponent,
+    ToastComponent
   ],
   imports: [
     BrowserModule,

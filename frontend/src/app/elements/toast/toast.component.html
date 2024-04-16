@@ -1,0 +1,5 @@
+<div class="toasts" *ngIf="toasts.length > 0">
+    <ul>
+        <li *ngFor="let toast of toasts">{{toast.message}}</li>
+    </ul>
+</div>
