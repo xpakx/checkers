@@ -54,11 +54,20 @@ pub async fn get_requests(db: &PgPool, user_id: &i64) -> Result<Vec<GameDetails>
 }
 
 pub async fn save_game(db: &PgPool, game: GameModel) -> Result<i64, GameError> {
-    let result = sqlx::query_scalar("INSERT INTO game (user_id, opponent_id, invitation, status) VALUES ($1, $2, $3, $4) RETURNING id")
+    let result = sqlx::query_scalar("INSERT INTO game 
+                                    (user_id, opponent_id, invitation, game_type, ruleset, ai_type, status, current_state, user_starts, user_turn) 
+                                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) 
+                                    RETURNING id")
         .bind(&game.user_id)
         .bind(&game.opponent_id)
         .bind(&game.invitation)
+        .bind(&game.game_type)
+        .bind(&game.ruleset)
+        .bind(&game.ai_type)
         .bind(&game.status)
+        .bind(&game.current_state)
+        .bind(&game.user_starts)
+        .bind(&game.user_turn)
         .fetch_one(db)
         .await
         .map_err(|err: sqlx::Error| { 
