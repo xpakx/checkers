@@ -14,7 +14,6 @@ export class ToastComponent implements OnInit {
 
   constructor(private toastService: ToastService) { }
 
-
   ngOnInit(): void {
     this.toastSub = this.toastService.toast$
       .subscribe((toast: Toast) => this.onToast(toast));
@@ -26,6 +25,17 @@ export class ToastComponent implements OnInit {
 
   onToast(toast: Toast) {
     this.toasts.push(toast);
+    let time = toast.time !== undefined ? toast.time : 5000;
+    this.prepareDeletion(toast.id, time)
+  }
+
+  prepareDeletion(id: String, time: number) {
+    setTimeout(() => {
+      const index = this.toasts.findIndex(item => item.id === id);
+      if (index !== -1) {
+        this.toasts.splice(index, 1);
+      }
+    }, time);
   }
 
 }
