@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { ToastService } from '../toast.service';
 import { Toast } from '../dto/toast';
@@ -8,7 +8,7 @@ import { Toast } from '../dto/toast';
   templateUrl: './toast.component.html',
   styleUrls: ['./toast.component.css']
 })
-export class ToastComponent implements OnInit {
+export class ToastComponent implements OnInit, OnDestroy {
   private toastSub?: Subscription;
   toasts: Toast[] = [];
 
