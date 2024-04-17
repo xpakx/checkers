@@ -57,8 +57,12 @@ export class ErrorInterceptor implements HttpInterceptor {
         return next.handle(newRequest);
       }),
       catchError((err: any) => {
-        this.clearStorage();
-        return throwError(() => error);
+        if (err.status === 401) {
+          this.clearStorage();
+          return throwError(() => error);
+        } else {
+          return throwError(() => err);
+        }
       })
     );
   }
