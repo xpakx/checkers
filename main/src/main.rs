@@ -1,8 +1,10 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use axum::{routing::{post, get}, Router};
+use deadpool_lapin::lapin::types::FieldTable;
+use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
 use sqlx::{postgres::PgPoolOptions, PgPool};
-use tracing::info;
+use tracing::{debug, info, error};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use serde::{Deserialize, Serialize};
 
@@ -45,6 +47,11 @@ async fn main() {
         .await
         .unwrap();
 
+    let mut cfg = deadpool_lapin::Config::default();
+    cfg.url = Some("amqp://guest:guest@localhost:5672".into());
+    let lapin_pool = cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)).unwrap();
+    tokio::spawn(async move {lapin_listen(lapin_pool.clone()).await});
+
     let state = AppState { db: pool, jwt: config.jwt_secret };
 
     let app = Router::new()
@@ -84,4 +91,80 @@ struct UserModel {
     id: i64,
     username: String,
     password: String,
+}
+
+async fn lapin_listen(pool: deadpool_lapin::Pool) {
+    let mut retry_interval = tokio::time::interval(Duration::from_secs(5));
+    loop {
+        retry_interval.tick().await;
+        println!("connecting rmq consumer...");
+        match init_lapin_listen(pool.clone()).await {
+            Ok(_) => debug!("RabbitMq listen returned"),
+            Err(e) => debug!("RabbitMq listen had an error: {}", e),
+        };
+    }
+}
+
+async fn init_lapin_listen(pool: deadpool_lapin::Pool) -> Result<(), Box<dyn std::error::Error>> {
+    let rmq_con = pool.get().await
+        .map_err(|e| {
+        debug!("Could not get RabbitMQ connnection: {}", e);
+        e
+    })?;
+    let channel = rmq_con.create_channel().await?;
+
+    let queue = channel
+        .queue_declare(
+            "test_queue",
+            deadpool_lapin::lapin::options::QueueDeclareOptions::default(),
+            FieldTable::default(),
+        )
+        .await?;
+    debug!("Declared queue {:?}", queue);
+
+    let consumer = channel
+        .basic_consume(
+            "test_queue",
+            "my_consumer",
+            deadpool_lapin::lapin::options::BasicConsumeOptions::default(),
+            FieldTable::default(),
+        )
+        .await?;
+
+    debug!("Consumer connected, waiting for messages");
+    set_delegate(consumer, channel);
+    Ok(())
+}
+
+pub fn set_delegate(consumer: lapin::Consumer, channel: Channel) {
+    consumer.set_delegate({
+        move |delivery: DeliveryResult| {
+            info!("New AMQP message");
+            let channel = channel.clone();
+            async move {
+                let _channel = channel.clone();
+                let delivery = match delivery {
+                    Ok(Some(delivery)) => delivery,
+                    Ok(None) => return,
+                    Err(error) => {
+                        error!("Failed to consume queue message {}", error);
+                        return;
+                    }
+                };
+
+                let message = std::str::from_utf8(&delivery.data).unwrap();
+                // TODO: deserialize
+                info!("Received message: {:?}", &message);
+
+                // TODO: Process and serialize
+                // TODO: publish response
+
+                delivery
+                    .ack(BasicAckOptions::default())
+                    .await
+                    .expect("Failed to acknowledge message"); // TODO
+            }
+        }
+    }
+    );
 }
