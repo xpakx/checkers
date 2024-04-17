@@ -97,7 +97,7 @@ async fn lapin_listen(pool: deadpool_lapin::Pool) {
     let mut retry_interval = tokio::time::interval(Duration::from_secs(5));
     loop {
         retry_interval.tick().await;
-        println!("connecting rmq consumer...");
+        info!("Connecting rmq consumer...");
         match init_lapin_listen(pool.clone()).await {
             Ok(_) => debug!("RabbitMq listen returned"),
             Err(e) => debug!("RabbitMq listen had an error: {}", e),
@@ -132,7 +132,15 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool) -> Result<(), Box<dyn std
         .await?;
 
     debug!("Consumer connected, waiting for messages");
-    set_delegate(consumer, channel);
+    set_delegate(consumer, channel.clone());
+    let mut test_interval = tokio::time::interval(Duration::from_secs(5));
+    loop {
+        test_interval.tick().await;
+        match channel.status().connected() {
+            false => break,
+            true => {},
+        }
+    }
     Ok(())
 }
 
