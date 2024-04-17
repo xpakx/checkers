@@ -48,7 +48,7 @@ async fn main() {
         .unwrap();
 
     let mut cfg = deadpool_lapin::Config::default();
-    cfg.url = Some("amqp://guest:guest@localhost:5672".into());
+    cfg.url = Some(config.rabbit.into());
     let lapin_pool = cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)).unwrap();
     tokio::spawn(async move {lapin_listen(lapin_pool.clone()).await});
 

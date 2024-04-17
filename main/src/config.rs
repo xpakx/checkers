@@ -9,6 +9,7 @@ struct Config {
     port: Option<usize>,
     jwt_secret: Option<String>,
     db: Option<String>,
+    rabbit: Option<String>,
 }
 
 impl Default for Config {
@@ -18,6 +19,7 @@ impl Default for Config {
             port: None,
             jwt_secret: None,
             db: None,
+            rabbit: None,
         } 
     } 
 }
@@ -29,6 +31,7 @@ pub struct ConfigFin {
     pub port: usize,
     pub jwt_secret: String,
     pub db: String,
+    pub rabbit: String,
 }
 
 fn load_yaml_config(path: &str) -> Config {
@@ -66,6 +69,10 @@ fn load_env_config() -> Config {
             Ok(env) => Some(env),
             _ => None,
         },
+        rabbit: match env::var("RABBIT_URL") {
+            Ok(env) => Some(env),
+            _ => None,
+        },
     }
 }
 
@@ -93,6 +100,11 @@ pub fn get_config() -> ConfigFin {
             (_, Some(value)) => value,
             (Some(value), None) => value,
             (None, None) => String::from("postgresql://root:password@localhost:5432/checkers"),
+        },
+        rabbit: match (config.rabbit, env_config.rabbit) {
+            (_, Some(value)) => value,
+            (Some(value), None) => value,
+            (None, None) => String::from("amqp://guest:guest@localhost:5672"),
         },
     }
 }
