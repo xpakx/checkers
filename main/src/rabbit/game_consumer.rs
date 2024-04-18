@@ -39,8 +39,15 @@ pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc
                 
                 // TODO
                 let response = match game {
-                    Err(_) => StateEvent { game_id: message.game_id, error: true, error_message: Some("".into()) },
-                    Ok(game) => StateEvent { game_id: game.id, error: false, error_message: None },
+                    Err(_) => StateEvent { 
+                        game_id: message.game_id, 
+                        error: true,
+                        error_message: Some("".into()) 
+                    },
+                    Ok(game) => StateEvent {
+                        game_id: game.id,
+                        ..Default::default()
+                    },
                 };
                 info!("Response: {:?}", &response);
                 let response = serde_json::to_string(&response).unwrap();
@@ -80,4 +87,14 @@ struct StateEvent {
     error: bool,
     error_message: Option<String>,
     // TODO
+}
+
+impl Default for StateEvent {
+    fn default() -> StateEvent {
+        StateEvent { 
+            game_id: 0,
+            error: false,
+            error_message: None,
+        } 
+    } 
 }
