@@ -4,7 +4,9 @@ use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
 use ::serde::{Deserialize, Serialize};
 use tracing::{info, error};
 
-use crate::{game::repository::get_game_details, rabbit::STATE_EXCHANGE, AppState};
+use crate::{game::repository::{self, get_game_details}, rabbit::STATE_EXCHANGE, AppState};
+
+use super::update_consumer::GameStatus;
 
 
 pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc<AppState>) {
@@ -37,15 +39,40 @@ pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc
 
                 let game = get_game_details(&state.db, &message.game_id).await;
                 
-                // TODO
                 let response = match game {
                     Err(_) => StateEvent { 
                         game_id: message.game_id, 
                         error: true,
-                        error_message: Some("".into()) 
+                        error_message: Some("".into()),
+                        ..Default::default()
                     },
                     Ok(game) => StateEvent {
                         game_id: game.id,
+                        user: game.user,
+                        opponent: match game.opponent {
+                            None => "AI".into(),
+                            Some(opp) => opp,
+                        },
+                        user_turn: game.user_turn,
+                        user_starts: game.user_starts,
+                        current_state: game.current_state,
+                        game_type: match game.game_type {
+                            repository::GameType::AI => GameType::AI,
+                            repository::GameType::User => GameType::User,
+                        },
+                        ruleset: match game.ruleset {
+                            repository::RuleSet::British => RuleSet::British,
+                        },
+                        ai_type: match game.ai_type {
+                            repository::AIType::None => AIType::None,
+                            repository::AIType::Random => AIType::Random,
+                        },
+                        status: match game.status {
+                            repository::GameStatus::NotFinished => GameStatus::NotFinished,
+                            repository::GameStatus::Lost => GameStatus::Lost,
+                            repository::GameStatus::Won => GameStatus::Won,
+                            repository::GameStatus::Drawn => GameStatus::Drawn,
+                        },
                         ..Default::default()
                     },
                 };
@@ -86,7 +113,31 @@ struct StateEvent {
     game_id: i64,
     error: bool,
     error_message: Option<String>,
-    // TODO
+
+    user: String,
+    opponent: String,
+    user_turn: bool,
+    user_starts: bool,
+    current_state: String,
+    game_type: GameType,
+    ruleset: RuleSet,
+    ai_type: AIType,
+    status: GameStatus,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum GameType {
+    User, AI,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum RuleSet {
+    British,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub enum AIType {
+    None, Random,
 }
 
 impl Default for StateEvent {
@@ -95,6 +146,15 @@ impl Default for StateEvent {
             game_id: 0,
             error: false,
             error_message: None,
+            user: "".into(),
+            opponent: "AI".into(),
+            user_turn: true,
+            user_starts: true,
+            current_state: "".into(),
+            game_type: GameType::User,
+            ruleset: RuleSet::British,
+            ai_type: AIType::None,
+            status: GameStatus::NotFinished,
         } 
     } 
 }
