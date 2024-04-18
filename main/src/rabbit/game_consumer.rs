@@ -1,4 +1,4 @@
-use std::{fmt::write, sync::Arc};
+use std::sync::Arc;
 
 use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
 use ::serde::{Deserialize, Serialize};
@@ -14,8 +14,8 @@ pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc
             let channel = channel.clone();
             let state = state.clone();
             async move {
-                let _channel = channel.clone();
-                let _state = state.clone();
+                let channel = channel.clone();
+                let state = state.clone();
                 let delivery = match delivery {
                     Ok(Some(delivery)) => delivery,
                     Ok(None) => return,
@@ -29,7 +29,7 @@ pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc
                 let message: GameEvent = match serde_json::from_str(message) {
                     Ok(msg) => msg,
                     Err(err) => {
-                        error!("Failed to deserialize move message: {:?}", err);
+                        error!("Failed to deserialize game event: {:?}", err);
                         return;
                     }
                 };

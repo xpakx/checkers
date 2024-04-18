@@ -1,18 +1,17 @@
 use std::sync::Arc;
 
-use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
+use lapin::{message::DeliveryResult, options::BasicAckOptions};
+use serde::{Deserialize, Serialize};
 use tracing::{info, error};
 
 use crate::AppState;
 
-pub fn set_update_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc<AppState>) {
+pub fn set_update_delegate(consumer: lapin::Consumer, state: Arc<AppState>) {
     consumer.set_delegate({
         move |delivery: DeliveryResult| {
             info!("New update message");
-            let channel = channel.clone();
             let state = state.clone();
             async move {
-                let _channel = channel.clone();
                 let _state = state.clone();
                 let delivery = match delivery {
                     Ok(Some(delivery)) => delivery,
@@ -24,11 +23,17 @@ pub fn set_update_delegate(consumer: lapin::Consumer, channel: Channel, state: A
                 };
 
                 let message = std::str::from_utf8(&delivery.data).unwrap();
-                // TODO: deserialize
+                let message: UpdateEvent = match serde_json::from_str(message) {
+                    Ok(msg) => msg,
+                    Err(err) => {
+                        error!("Failed to deserialize update event: {:?}", err);
+                        return;
+                    }
+                };
                 info!("Received message: {:?}", &message);
 
-                // TODO: Process and serialize
-                // TODO: publish response
+                // TODO: update game in db
+                // TODO: save move to db
 
                 delivery
                     .ack(BasicAckOptions::default())
@@ -38,4 +43,20 @@ pub fn set_update_delegate(consumer: lapin::Consumer, channel: Channel, state: A
         }
     }
     );
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UpdateEvent {
+    game_id: i64,
+    status: GameStatus,
+    current_state: String,
+    user_turn: bool,
+    timestamp: chrono::DateTime<chrono::Utc>,
+    last_move: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum GameStatus {
+    NotFinished, Won, Lost, Drawn,
 }

@@ -130,7 +130,7 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool, state: Arc<AppState>) -> 
 
     debug!("Consumer connected, waiting for messages");
     set_game_delegate(game_consumer, channel.clone(), state.clone());
-    set_update_delegate(update_consumer, channel.clone(), state.clone());
+    set_update_delegate(update_consumer, state.clone());
     let mut test_interval = tokio::time::interval(Duration::from_secs(5));
     loop {
         test_interval.tick().await;
