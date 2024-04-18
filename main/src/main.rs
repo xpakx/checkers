@@ -2,7 +2,7 @@ use std::{sync::Arc, time::Duration};
 
 use axum::{routing::{post, get}, Router};
 use deadpool_lapin::lapin::types::FieldTable;
-use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
+use lapin::{message::DeliveryResult, options::{BasicAckOptions, BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions}, Channel, ExchangeKind};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tracing::{debug, info, error};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -113,26 +113,99 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool) -> Result<(), Box<dyn std
     })?;
     let channel = rmq_con.create_channel().await?;
 
-    let queue = channel
-        .queue_declare(
-            "test_queue",
-            deadpool_lapin::lapin::options::QueueDeclareOptions::default(),
+    channel
+        .exchange_declare(
+            STATE_EXCHANGE,
+            ExchangeKind::Topic,
+            ExchangeDeclareOptions {
+                durable: true,
+                ..Default::default()
+            },
             FieldTable::default(),
+            )
+        .await?;
+    debug!("Declared exchange {:?}", STATE_EXCHANGE);
+
+    channel
+        .exchange_declare(
+            GAMES_EXCHANGE,
+            ExchangeKind::Topic,
+            ExchangeDeclareOptions {
+                durable: true,
+                ..Default::default()
+            },
+            FieldTable::default(),
+            )
+        .await?;
+    debug!("Declared exchange {:?}", GAMES_EXCHANGE);
+
+    channel
+        .exchange_declare(
+            UPDATES_EXCHANGE,
+            ExchangeKind::Topic,
+            ExchangeDeclareOptions {
+                durable: true,
+                ..Default::default()
+            },
+            FieldTable::default(),
+            )
+        .await?;
+    debug!("Declared exchange {:?}", UPDATES_EXCHANGE);
+
+    channel.queue_declare(
+        UPDATES_QUEUE,
+        QueueDeclareOptions::default(),
+        Default::default(),
         )
         .await?;
-    debug!("Declared queue {:?}", queue);
+    debug!("Declared queue {:?}", UPDATES_QUEUE);
 
-    let consumer = channel
-        .basic_consume(
-            "test_queue",
-            "my_consumer",
-            deadpool_lapin::lapin::options::BasicConsumeOptions::default(),
+    channel
+        .queue_bind(
+            UPDATES_QUEUE,
+            UPDATES_EXCHANGE,
+            "update",
+            QueueBindOptions::default(),
             FieldTable::default(),
+            )
+        .await?;
+    debug!("Declared bind {:?} -> {:?}", UPDATES_EXCHANGE, UPDATES_QUEUE);
+
+    channel.queue_declare(
+        GAMES_QUEUE,
+        QueueDeclareOptions::default(),
+        Default::default(),
         )
+        .await?;
+    debug!("Declared queue {:?}", GAMES_QUEUE);
+
+    channel
+        .queue_bind(
+            GAMES_QUEUE,
+            GAMES_EXCHANGE,
+            "game",
+            QueueBindOptions::default(),
+            FieldTable::default(),
+            )
+        .await?;
+    debug!("Declared bind {:?} -> {:?}", GAMES_EXCHANGE, GAMES_QUEUE);
+
+    let game_consumer = channel.basic_consume(
+        GAMES_QUEUE,
+        "games_main_consumer",
+        BasicConsumeOptions::default(),
+        FieldTable::default())
+        .await?;
+
+    let _update_consumer = channel.basic_consume(
+        UPDATES_QUEUE,
+        "updates_main_consumer",
+        BasicConsumeOptions::default(),
+        FieldTable::default())
         .await?;
 
     debug!("Consumer connected, waiting for messages");
-    set_delegate(consumer, channel.clone());
+    set_delegate(game_consumer, channel.clone());
     let mut test_interval = tokio::time::interval(Duration::from_secs(5));
     loop {
         test_interval.tick().await;
@@ -143,6 +216,15 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool) -> Result<(), Box<dyn std
     }
     Ok(())
 }
+
+const STATE_EXCHANGE: &str = "checkers.state.topic";
+
+const UPDATES_EXCHANGE: &str = "checkers.updates.topic";
+const UPDATES_QUEUE: &str = "checkers.updates.queue";
+
+const GAMES_EXCHANGE: &str = "checkers.games.topic";
+const GAMES_QUEUE: &str = "checkers.games.queue";
+
 
 pub fn set_delegate(consumer: lapin::Consumer, channel: Channel) {
     consumer.set_delegate({
