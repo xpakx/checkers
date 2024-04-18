@@ -1,10 +1,13 @@
-use std::sync::Arc;
+use std::{fmt::write, sync::Arc};
 
 use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
-use sqlx::Postgres;
+use ::serde::{Deserialize, Serialize};
 use tracing::{info, error};
 
-pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc<sqlx::Pool<Postgres>>) {
+use crate::{game::repository::get_game_details, rabbit::STATE_EXCHANGE, AppState};
+
+
+pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc<AppState>) {
     consumer.set_delegate({
         move |delivery: DeliveryResult| {
             info!("New game message");

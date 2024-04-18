@@ -47,13 +47,15 @@ async fn main() {
         .await
         .unwrap();
 
-    let db_state = Arc::new(pool.clone());
+    let state = AppState { db: pool, jwt: config.jwt_secret };
+    let state = Arc::new(state);
+    let lapin_state = state.clone();
+
     let mut cfg = deadpool_lapin::Config::default();
     cfg.url = Some(config.rabbit.into());
     let lapin_pool = cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)).unwrap();
-    tokio::spawn(async move {lapin_listen(lapin_pool.clone(), db_state).await});
+    tokio::spawn(async move {lapin_listen(lapin_pool.clone(), lapin_state).await});
 
-    let state = AppState { db: pool, jwt: config.jwt_secret };
 
     let app = Router::new()
         .route("/register", post(register))
@@ -66,7 +68,7 @@ async fn main() {
         .route("/game/:id/request", post(accept_request))
         .route("/game/:id", get(game))
         .route("/game/:id/history", get(moves))
-        .with_state(Arc::new(state));
+        .with_state(state);
 
     info!("Initializing router…");
     let host = "0.0.0.0";

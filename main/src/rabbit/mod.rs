@@ -2,15 +2,14 @@ use std::{sync::Arc, time::Duration};
 
 use deadpool_lapin::lapin::types::FieldTable;
 use lapin::{options::{BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions}, ExchangeKind};
-use sqlx::Postgres;
 use tracing::{debug, info};
 
-use crate::rabbit::{game_consumer::set_game_delegate, update_consumer::set_update_delegate};
+use crate::{rabbit::{game_consumer::set_game_delegate, update_consumer::set_update_delegate}, AppState};
 
 mod game_consumer;
 mod update_consumer;
 
-const STATE_EXCHANGE: &str = "checkers.state.topic";
+pub const STATE_EXCHANGE: &str = "checkers.state.topic";
 
 const UPDATES_EXCHANGE: &str = "checkers.updates.topic";
 const UPDATES_QUEUE: &str = "checkers.updates.queue";
@@ -18,7 +17,7 @@ const UPDATES_QUEUE: &str = "checkers.updates.queue";
 const GAMES_EXCHANGE: &str = "checkers.games.topic";
 const GAMES_QUEUE: &str = "checkers.games.queue";
 
-pub async fn lapin_listen(pool: deadpool_lapin::Pool, state: Arc<sqlx::Pool<Postgres>>) {
+pub async fn lapin_listen(pool: deadpool_lapin::Pool, state: Arc<AppState>) {
     let mut retry_interval = tokio::time::interval(Duration::from_secs(5));
     loop {
         retry_interval.tick().await;
@@ -30,7 +29,7 @@ pub async fn lapin_listen(pool: deadpool_lapin::Pool, state: Arc<sqlx::Pool<Post
     }
 }
 
-async fn init_lapin_listen(pool: deadpool_lapin::Pool, state: Arc<sqlx::Pool<Postgres>>) -> Result<(), Box<dyn std::error::Error>> {
+async fn init_lapin_listen(pool: deadpool_lapin::Pool, state: Arc<AppState>) -> Result<(), Box<dyn std::error::Error>> {
     let rmq_con = pool.get().await
         .map_err(|e| {
         debug!("Could not get RabbitMQ connnection: {}", e);
