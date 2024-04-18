@@ -47,10 +47,11 @@ async fn main() {
         .await
         .unwrap();
 
+    let db_state = Arc::new(pool.clone());
     let mut cfg = deadpool_lapin::Config::default();
     cfg.url = Some(config.rabbit.into());
     let lapin_pool = cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)).unwrap();
-    tokio::spawn(async move {lapin_listen(lapin_pool.clone()).await});
+    tokio::spawn(async move {lapin_listen(lapin_pool.clone(), db_state).await});
 
     let state = AppState { db: pool, jwt: config.jwt_secret };
 

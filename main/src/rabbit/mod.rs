@@ -1,7 +1,8 @@
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use deadpool_lapin::lapin::types::FieldTable;
 use lapin::{options::{BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions}, ExchangeKind};
+use sqlx::Postgres;
 use tracing::{debug, info};
 
 use crate::rabbit::{game_consumer::set_game_delegate, update_consumer::set_update_delegate};
@@ -17,19 +18,19 @@ const UPDATES_QUEUE: &str = "checkers.updates.queue";
 const GAMES_EXCHANGE: &str = "checkers.games.topic";
 const GAMES_QUEUE: &str = "checkers.games.queue";
 
-pub async fn lapin_listen(pool: deadpool_lapin::Pool) {
+pub async fn lapin_listen(pool: deadpool_lapin::Pool, state: Arc<sqlx::Pool<Postgres>>) {
     let mut retry_interval = tokio::time::interval(Duration::from_secs(5));
     loop {
         retry_interval.tick().await;
         info!("Connecting rmq consumer...");
-        match init_lapin_listen(pool.clone()).await {
+        match init_lapin_listen(pool.clone(), state.clone()).await {
             Ok(_) => debug!("RabbitMq listen returned"),
             Err(e) => debug!("RabbitMq listen had an error: {}", e),
         };
     }
 }
 
-async fn init_lapin_listen(pool: deadpool_lapin::Pool) -> Result<(), Box<dyn std::error::Error>> {
+async fn init_lapin_listen(pool: deadpool_lapin::Pool, state: Arc<sqlx::Pool<Postgres>>) -> Result<(), Box<dyn std::error::Error>> {
     let rmq_con = pool.get().await
         .map_err(|e| {
         debug!("Could not get RabbitMQ connnection: {}", e);
@@ -129,8 +130,8 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool) -> Result<(), Box<dyn std
         .await?;
 
     debug!("Consumer connected, waiting for messages");
-    set_game_delegate(game_consumer, channel.clone());
-    set_update_delegate(update_consumer, channel.clone());
+    set_game_delegate(game_consumer, channel.clone(), state.clone());
+    set_update_delegate(update_consumer, channel.clone(), state.clone());
     let mut test_interval = tokio::time::interval(Duration::from_secs(5));
     loop {
         test_interval.tick().await;

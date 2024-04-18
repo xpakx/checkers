@@ -1,13 +1,18 @@
+use std::sync::Arc;
+
 use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
+use sqlx::Postgres;
 use tracing::{info, error};
 
-pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel) {
+pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc<sqlx::Pool<Postgres>>) {
     consumer.set_delegate({
         move |delivery: DeliveryResult| {
             info!("New game message");
             let channel = channel.clone();
+            let state = state.clone();
             async move {
                 let _channel = channel.clone();
+                let _state = state.clone();
                 let delivery = match delivery {
                     Ok(Some(delivery)) => delivery,
                     Ok(None) => return,
