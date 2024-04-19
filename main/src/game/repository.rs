@@ -293,3 +293,16 @@ pub struct MoveModel {
 
     pub game_id: i64,
 }
+
+impl Default for MoveModel {
+    fn default() -> MoveModel {
+        MoveModel { 
+            id: None,
+            x: 0,
+            y: 0,
+            current_state: String::from("xxxxxxxxxxxx........oooooooooooo"),
+            game_id: 0,
+            created_at: None,
+        } 
+    } 
+}

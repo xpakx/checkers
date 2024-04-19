@@ -48,12 +48,10 @@ pub fn set_update_delegate(consumer: lapin::Consumer, state: Arc<AppState>) {
                     };
                     if let Ok(_) = update_game(&state.db, game).await {
                         let mv = MoveModel {
-                            id: None, // TODO
                             game_id: message.game_id,
                             current_state: message.current_state,
                             created_at: Some(message.timestamp),
-                            x: 0, // TODO
-                            y: 0, // TODO
+                            ..Default::default() // TODO: last move
                         };
                         _ = save_move(&state.db, mv)
                     }
