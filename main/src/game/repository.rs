@@ -151,6 +151,23 @@ pub async fn get_moves(db: &PgPool, id: &i64) -> Result<Vec<MoveModel>, GameErro
         })
 }
 
+pub async fn update_game(db: &PgPool, game: GameModel) -> Result<PgQueryResult, GameError> {
+    sqlx::query("UPDATE game 
+                SET status = ?2, current_state = ?3, user_turn = ?4 
+                WHERE id = ?1")
+        .bind(&game.id)
+        .bind(&game.status)
+        .bind(&game.current_state)
+        .bind(&game.user_turn)
+        .execute(db)
+        .await
+        .map_err(|err: sqlx::Error| { 
+            debug!("Cannot update game in db!");
+            debug!("{}", err); 
+            GameError::from(err)
+        })
+}
+
 #[derive(Serialize, Deserialize, sqlx::Type)]
 #[repr(i16)]
 pub enum GameType {
