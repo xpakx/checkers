@@ -4,7 +4,7 @@ use lapin::{message::DeliveryResult, options::BasicAckOptions};
 use serde::{Deserialize, Serialize};
 use tracing::{info, error};
 
-use crate::{game::repository::{self, get_game, update_game, GameModel}, AppState};
+use crate::{game::repository::{self, get_game, save_move, update_game, GameModel, MoveModel}, AppState};
 
 pub fn set_update_delegate(consumer: lapin::Consumer, state: Arc<AppState>) {
     consumer.set_delegate({
@@ -42,12 +42,21 @@ pub fn set_update_delegate(consumer: lapin::Consumer, state: Arc<AppState>) {
                             GameStatus::Lost => repository::GameStatus::Lost,
                             GameStatus::Drawn => repository::GameStatus::Drawn,
                         },
-                        current_state: message.current_state,
+                        current_state: message.current_state.clone(),
                         user_turn: message.user_turn,
                         ..Default::default()
                     };
-                    _ = update_game(&state.db, game).await;
-                    // TODO: save move to db
+                    if let Ok(_) = update_game(&state.db, game).await {
+                        let mv = MoveModel {
+                            id: None, // TODO
+                            game_id: message.game_id,
+                            current_state: message.current_state,
+                            created_at: Some(message.timestamp),
+                            x: 0, // TODO
+                            y: 0, // TODO
+                        };
+                        _ = save_move(&state.db, mv)
+                    }
                 }
 
                 delivery
