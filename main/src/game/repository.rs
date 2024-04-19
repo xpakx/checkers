@@ -168,6 +168,31 @@ pub async fn update_game(db: &PgPool, game: GameModel) -> Result<PgQueryResult, 
         })
 }
 
+pub async fn save_move(db: &PgPool, mv: MoveModel) -> Result<i64, GameError> {
+    let result = sqlx::query_scalar("INSERT INTO move 
+                                    (game_id, current_state, created_at, x, y) 
+                                    VALUES ($1, $2, $3, $4, $5) 
+                                    RETURNING id")
+        .bind(&mv.game_id)
+        .bind(&mv.current_state)
+        .bind(&mv.created_at)
+        .bind(&mv.x)
+        .bind(&mv.y)
+        .fetch_one(db)
+        .await
+        .map_err(|err: sqlx::Error| { 
+            debug!("Cannot add move to db!");
+            debug!("{}", err); 
+            GameError::from(err) // TODO
+        });
+
+    match result {
+        Ok(None) => Err(GameError::Unknown),
+        Ok(Some(id)) => Ok(id),
+        Err(err) => Err(err),
+    }
+}
+
 #[derive(Serialize, Deserialize, sqlx::Type)]
 #[repr(i16)]
 pub enum GameType {
@@ -264,7 +289,7 @@ pub struct MoveModel {
     pub x: i32,
     pub y: i32,
     pub current_state: String,
-    created_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub created_at: Option<chrono::DateTime<chrono::Utc>>,
 
     pub game_id: i64,
 }
