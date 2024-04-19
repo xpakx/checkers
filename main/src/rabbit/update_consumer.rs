@@ -51,7 +51,8 @@ pub fn set_update_delegate(consumer: lapin::Consumer, state: Arc<AppState>) {
                             game_id: message.game_id,
                             current_state: message.current_state,
                             created_at: Some(message.timestamp),
-                            ..Default::default() // TODO: last move
+                            last_move: message.last_move,
+                            ..Default::default()
                         };
                         _ = save_move(&state.db, mv)
                     }

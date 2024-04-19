@@ -171,13 +171,12 @@ pub async fn update_game(db: &PgPool, game: GameModel) -> Result<PgQueryResult, 
 pub async fn save_move(db: &PgPool, mv: MoveModel) -> Result<i64, GameError> {
     let result = sqlx::query_scalar("INSERT INTO move 
                                     (game_id, current_state, created_at, x, y) 
-                                    VALUES ($1, $2, $3, $4, $5) 
+                                    VALUES ($1, $2, $3, $4) 
                                     RETURNING id")
         .bind(&mv.game_id)
         .bind(&mv.current_state)
         .bind(&mv.created_at)
-        .bind(&mv.x)
-        .bind(&mv.y)
+        .bind(&mv.last_move)
         .fetch_one(db)
         .await
         .map_err(|err: sqlx::Error| { 
@@ -286,8 +285,7 @@ pub struct GameDetails {
 #[derive(Serialize, Deserialize, sqlx::FromRow)]
 pub struct MoveModel {
     pub id: Option<i32>,
-    pub x: i32,
-    pub y: i32,
+    pub last_move: String,
     pub current_state: String,
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
 
@@ -298,8 +296,7 @@ impl Default for MoveModel {
     fn default() -> MoveModel {
         MoveModel { 
             id: None,
-            x: 0,
-            y: 0,
+            last_move: "".into(),
             current_state: String::from("xxxxxxxxxxxx........oooooooooooo"),
             game_id: 0,
             created_at: None,
