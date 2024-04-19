@@ -1,3 +1,4 @@
+use redis::Client;
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 use tracing::{debug, info};
@@ -19,7 +20,15 @@ async fn main() {
         .init();
     
     let (tx, _rx) = broadcast::channel(100);
-    let state = AppState { jwt: String::from("secret"), tx };
+
+
+    info!("Creating redis connection…");
+    let redis_db = "redis://default:redispw@localhost:6379";
+    let redis = redis::Client::open(redis_db)
+        .expect("Failed to connect to Redis");
+    info!("Connected to redis…");
+
+    let state = AppState { jwt: String::from("secret"), tx, redis };
 
     let app = Router::new()
         .route("/ws", get(handle))
@@ -42,6 +51,7 @@ async fn main() {
 pub struct AppState {
     jwt: String,
     tx: broadcast::Sender<Msg>,
+    redis: Client,
 }
 
 async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>, user: UserData) -> impl IntoResponse {
