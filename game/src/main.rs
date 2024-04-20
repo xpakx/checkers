@@ -120,6 +120,11 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
                         Err(_) => continue,
                         Ok(request) => request,
                     };
+                    let res = make_move(state, &name, *rm.read().unwrap(), move_request);
+                    if let Err(res) = res {
+                        let msg: Msg = Msg {room: *rm.read().unwrap(), msg: res, user: Some(name.clone()) };
+                        let _ = tx.send(msg);
+                    }
                 },
                 "/chat" => {
                     let chat_request: ChatRequest = match serde_json::from_str(text.as_str())  {
@@ -129,8 +134,6 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
                     chat(state, &name, *rm.read().unwrap(), chat_request)},
                 _ => continue,
             };
-            let msg = Msg { msg: text, author: Some(name.clone()), room: *rm.read().unwrap() };
-            let _ = tx.send(msg);
         }
     });
 
@@ -138,6 +141,39 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
         _ = (&mut send_task) => recv_task.abort(),
         _ = (&mut recv_task) => send_task.abort(),
     };
+}
+
+
+fn make_move(state: Arc<AppState>, username: &String, room: usize, _request: MoveRequest) -> Result<(), String> {
+    let game_db: Option<String> = state.redis
+        .lock()
+        .unwrap()
+        .get(format!("room_{}", room)).unwrap();
+    let Some(game_db) = game_db else {
+        return Err("Game not loaded!".into())
+    };
+    let mut game: Game = serde_json::from_str(game_db.as_str()).unwrap();
+    if username != &game.user && username != &game.opponent {
+        return Err("Not in game!".into())
+    }
+    if game.finished {
+        return Err("Game is finished!".into())
+    }
+    if game.blocked {
+        return Err("Cannot move now!".into())
+    }
+    if !((username == &game.user && game.first_user_turn) || (username == &game.opponent && !game.first_user_turn)) {
+        return Err("Cannot move now!".into())
+    }
+    game.blocked = true;
+    let game = serde_json::to_string(&game).unwrap();
+    let _: () = state.redis
+        .lock()
+        .unwrap()
+        .set(format!("room_{}", game), room).unwrap();
+
+    // TODO: publish move to rabbitmq
+    Ok(())
 }
 
 fn chat(state: Arc<AppState>, username: &String, room: usize, request: ChatRequest) {
@@ -232,6 +268,11 @@ struct WsPath {
 #[derive(Debug, Serialize, Deserialize)]
 struct Game {
     id: usize,
+    user: String,
+    opponent: String,
+    finished: bool,
+    first_user_turn: bool,
+    blocked: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
