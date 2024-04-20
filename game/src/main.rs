@@ -107,6 +107,7 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
                         Err(_) => continue,
                         Ok(request) => request,
                     };
+                    *rm.write().unwrap() = room_request.game_id;
                 },
                 "/move" => {
                     let move_request: MoveRequest = match serde_json::from_str(text.as_str())  {
