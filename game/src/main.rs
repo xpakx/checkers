@@ -1,8 +1,8 @@
-use redis::Client;
+use redis::{Connection, Commands};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 use tracing::{debug, info};
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 use axum::{extract::{ws::{Message, WebSocket}, FromRef, FromRequestParts, State, WebSocketUpgrade}, http::{request::Parts, StatusCode}, response::{IntoResponse, Response}, routing::get, Router};
 use axum::async_trait;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -26,9 +26,11 @@ async fn main() {
     let redis_db = "redis://default:redispw@localhost:6379";
     let redis = redis::Client::open(redis_db)
         .expect("Failed to connect to Redis");
+    let redis = redis.get_connection()
+        .expect("Failed to connect to Redis");
     info!("Connected to redis…");
 
-    let state = AppState { jwt: String::from("secret"), tx, redis };
+    let state = AppState { jwt: String::from("secret"), tx, redis: Mutex::from(redis) };
 
     let app = Router::new()
         .route("/ws", get(handle))
@@ -51,7 +53,7 @@ async fn main() {
 pub struct AppState {
     jwt: String,
     tx: broadcast::Sender<Msg>,
-    redis: Client,
+    redis: Mutex<Connection>,
 }
 
 async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>, user: UserData) -> impl IntoResponse {
