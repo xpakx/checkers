@@ -21,7 +21,7 @@ async fn main() {
     
     let (tx, _rx) = broadcast::channel(100);
 
-
+    // TODO?: use connection pool
     info!("Creating redis connection…");
     let redis_db = "redis://default:redispw@localhost:6379";
     let redis = redis::Client::open(redis_db)
@@ -65,7 +65,7 @@ async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>, user: 
 pub struct Msg {
     msg: String,
     room: usize,
-    author: Option<String>,
+    user: Option<String>,
 }
 
 async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
@@ -76,9 +76,15 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
     let room = Arc::new(RwLock::new(0));
 
     let rm_send = room.clone();
+    let u = username.clone();
 
     let mut send_task = tokio::spawn(async move {
         while let Ok(msg) = rx.recv().await {
+            if let Some(user) = msg.user {
+                if user != u {
+                    continue;
+                }
+            }
             if msg.room == *rm_send.read().unwrap() {
                 if sender.send(Message::Text(msg.msg)).await.is_err() {
                     break;
@@ -137,7 +143,7 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
 fn chat(state: Arc<AppState>, username: &String, room: usize, request: ChatRequest) {
     let msg = ChatMessage {player: username.clone(), message: request.message };
     let msg = serde_json::to_string(&msg).unwrap();
-    let msg: Msg = Msg {room, msg, author: Some(username.clone()) };
+    let msg: Msg = Msg {room, msg, user: None };
     let _ = state.tx.send(msg);
 }
 
