@@ -120,6 +120,7 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
                         Err(_) => continue,
                         Ok(request) => request,
                     };
+                    chat(state, &name, *rm.read().unwrap(), chat_request)},
                 _ => continue,
             };
             let msg = Msg { msg: text, author: Some(name.clone()), room: *rm.read().unwrap() };
@@ -131,6 +132,13 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
         _ = (&mut send_task) => recv_task.abort(),
         _ = (&mut recv_task) => send_task.abort(),
     };
+}
+
+fn chat(state: Arc<AppState>, username: &String, room: usize, request: ChatRequest) {
+    let msg = ChatMessage {player: username.clone(), message: request.message };
+    let msg = serde_json::to_string(&msg).unwrap();
+    let msg: Msg = Msg {room, msg, author: Some(username.clone()) };
+    let _ = state.tx.send(msg);
 }
 
 pub struct UserData {
