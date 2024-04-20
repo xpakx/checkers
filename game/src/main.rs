@@ -90,10 +90,37 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
     let tx = state.tx.clone();
     let name = username.clone();
     let rm = room.clone();
+    let state = state.clone();
 
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(Message::Text(text))) = receiver.next().await {
+            let state = state.clone();
             debug!(text);
+            let path: WsPath = match serde_json::from_str(text.as_str())  {
+                Err(_) => continue,
+                Ok(path) => path
+            };
+            let path = path.path;
+            match path.as_str() {
+                "/subscribe" => {
+                    let room_request: SubscribeRequest = match serde_json::from_str(text.as_str())  {
+                        Err(_) => continue,
+                        Ok(request) => request,
+                    };
+                },
+                "/move" => {
+                    let move_request: MoveRequest = match serde_json::from_str(text.as_str())  {
+                        Err(_) => continue,
+                        Ok(request) => request,
+                    };
+                },
+                "/chat" => {
+                    let chat_request: ChatRequest = match serde_json::from_str(text.as_str())  {
+                        Err(_) => continue,
+                        Ok(request) => request,
+                    };
+                _ => continue,
+            };
             let msg = Msg { msg: text, author: Some(name.clone()), room: *rm.read().unwrap() };
             let _ = tx.send(msg);
         }
@@ -180,4 +207,36 @@ pub struct TokenClaims {
     pub iat: usize,
     pub exp: usize,
     pub refresh: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct WsPath {
+    path: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct Game {
+    id: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct MoveRequest {
+    x: usize,
+    y: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct SubscribeRequest {
+    game_id: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ChatRequest {
+    message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ChatMessage {
+    player: String,
+    message: String,
 }
