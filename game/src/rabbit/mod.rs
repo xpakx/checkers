@@ -4,7 +4,10 @@ use deadpool_lapin::lapin::types::FieldTable;
 use lapin::{options::{BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions}, ExchangeKind};
 use tracing::{debug, info};
 
-use crate::AppState;
+use crate::{rabbit::{engine_consumer::set_engine_delegate, state_consumer::set_state_delegate}, AppState};
+
+mod engine_consumer;
+mod state_consumer;
 
 const UPDATES_EXCHANGE: &str = "checkers.updates.topic";
 const GAMES_EXCHANGE: &str = "checkers.games.topic";
@@ -140,6 +143,23 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool, state: Arc<AppState>) -> 
         .await?;
     debug!("Declared bind {:?} -> {:?}", ENGINE_EXCHANGE, ENGINE_QUEUE);
 
+    let engine_consumer = channel.basic_consume(
+        ENGINE_QUEUE,
+        "engine_game_consumer",
+        BasicConsumeOptions::default(),
+        FieldTable::default())
+        .await?;
+
+    let state_consumer = channel.basic_consume(
+        STATE_QUEUE,
+        "state_game_consumer",
+        BasicConsumeOptions::default(),
+        FieldTable::default())
+        .await?;
+
+    debug!("Consumer connected, waiting for messages");
+    set_engine_delegate(engine_consumer, channel.clone(), state.clone());
+    set_state_delegate(state_consumer, channel.clone(), state.clone());
     let mut test_interval = tokio::time::interval(Duration::from_secs(5));
     loop {
         test_interval.tick().await;
