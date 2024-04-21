@@ -182,7 +182,7 @@ fn make_move(state: Arc<AppState>, username: &String, room: usize, _request: Mov
     let _: () = state.redis
         .lock()
         .unwrap()
-        .set(format!("room_{}", game), room).unwrap();
+        .set(format!("room_{}", room), game).unwrap();
 
     // TODO: publish move to rabbitmq
     Ok(())
@@ -278,13 +278,13 @@ struct WsPath {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Game {
-    id: usize,
-    user: String,
-    opponent: String,
-    finished: bool,
-    first_user_turn: bool,
-    blocked: bool,
+pub struct Game {
+    pub id: usize,
+    pub user: String,
+    pub opponent: String,
+    pub finished: bool,
+    pub first_user_turn: bool,
+    pub blocked: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
