@@ -9,6 +9,10 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use futures::{sink::SinkExt, stream::StreamExt};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 
+use crate::rabbit::lapin_listen;
+
+mod rabbit;
+
 #[tokio::main]
 async fn main() {
     tracing_subscriber::registry()
@@ -31,10 +35,18 @@ async fn main() {
     info!("Connected to redis…");
 
     let state = AppState { jwt: String::from("secret"), tx, redis: Mutex::from(redis) };
+    let state = Arc::new(state);
+
+    let lapin_state = state.clone();
+    let rabbit_url = "redis://default:redispw@localhost:6379";
+    let mut cfg = deadpool_lapin::Config::default();
+    cfg.url = Some(rabbit_url.into());
+    let lapin_pool = cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)).unwrap();
+    tokio::spawn(async move {lapin_listen(lapin_pool.clone(), lapin_state).await});
 
     let app = Router::new()
         .route("/ws", get(handle))
-        .with_state(Arc::new(state));
+        .with_state(state.clone());
 
     info!("Initializing router…");
     let host = "0.0.0.0";
