@@ -131,6 +131,24 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
                         Ok(request) => request,
                     };
                     *rm.write().unwrap() = room_request.game_id;
+                    let room = *rm.read().unwrap();
+
+                    let game_loaded: Option<String> = state.redis
+                        .lock()
+                        .unwrap()
+                        .get(format!("room_{}", room)).unwrap();
+
+                    match game_loaded {
+                        None => {
+                            let event = GameEvent { game_id: room };
+                            let _ = state.txgames.send(event);
+                        },
+                        Some(game) => {
+                            let msg = serde_json::to_string(&game).unwrap();
+                            let msg = Msg { msg, room, user: Some(name.clone()) };
+                            let _ = state.tx.send(msg);
+                        }
+                    }
                 },
                 "/move" => {
                     let move_request: MoveRequest = match serde_json::from_str(text.as_str())  {
@@ -167,6 +185,8 @@ fn make_move(state: Arc<AppState>, username: &String, room: usize, request: Move
         .unwrap()
         .get(format!("room_{}", room)).unwrap();
     let Some(game_db) = game_db else {
+        let event = GameEvent { game_id: room };
+        let _ = state.txgames.send(event);
         return Err("Game not loaded!".into())
     };
     let mut game: Game = serde_json::from_str(game_db.as_str()).unwrap();
