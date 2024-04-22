@@ -29,7 +29,7 @@ pub async fn move_publisher(channel: Channel, state: Arc<AppState>) {
             //TODO
             let msg = serde_json::to_string(&event).unwrap();
             let routing_key = match event.ai {
-                true => "move_ai",
+                true => "move_ai", // is it even needed?
                 false => "move",
             };
             if let Err(err) = chan

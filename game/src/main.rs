@@ -158,7 +158,7 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
 }
 
 
-fn make_move(state: Arc<AppState>, username: &String, room: usize, _request: MoveRequest) -> Result<(), String> {
+fn make_move(state: Arc<AppState>, username: &String, room: usize, request: MoveRequest) -> Result<(), String> {
     let game_db: Option<String> = state.redis
         .lock()
         .unwrap()
@@ -180,13 +180,20 @@ fn make_move(state: Arc<AppState>, username: &String, room: usize, _request: Mov
         return Err("Cannot move now!".into())
     }
     game.blocked = true;
-    let game = serde_json::to_string(&game).unwrap();
+    let game_ser = serde_json::to_string(&game).unwrap();
     let _: () = state.redis
         .lock()
         .unwrap()
-        .set(format!("room_{}", room), game).unwrap();
+        .set(format!("room_{}", room), game_ser).unwrap();
 
-    // TODO: publish move to rabbitmq
+    let event = MoveEvent {
+        ai: false,
+        game_id: game.id,
+        game_state: "".into(), // TODO
+        row: request.x,
+        column: request.y,
+    };
+    let _ = state.txmoves.send(event);
     Ok(())
 }
 
