@@ -4,11 +4,12 @@ use deadpool_lapin::lapin::types::FieldTable;
 use lapin::{options::{BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions}, ExchangeKind};
 use tracing::{debug, info};
 
-use crate::{rabbit::{engine_consumer::set_engine_delegate, move_publisher::move_publisher, state_consumer::set_state_delegate}, AppState};
+use crate::{rabbit::{engine_consumer::set_engine_delegate, game_publisher::game_publisher, move_publisher::move_publisher, state_consumer::set_state_delegate}, AppState};
 
 mod engine_consumer;
 mod state_consumer;
 pub mod move_publisher;
+pub mod game_publisher;
 
 const UPDATES_EXCHANGE: &str = "checkers.updates.topic";
 const GAMES_EXCHANGE: &str = "checkers.games.topic";
@@ -165,6 +166,7 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool, state: Arc<AppState>) -> 
 
     let mut handles = vec![];
     handles.push(move_publisher(channel.clone(), state.clone()));
+    handles.push(game_publisher(channel.clone(), state.clone()));
 
     let mut test_interval = tokio::time::interval(Duration::from_secs(5));
     loop {

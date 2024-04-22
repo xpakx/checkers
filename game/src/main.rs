@@ -1,3 +1,4 @@
+use rabbit::game_publisher::GameEvent;
 use redis::{Connection, Commands};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
@@ -36,7 +37,8 @@ async fn main() {
     info!("Connected to redis…");
 
     let (txmoves, _rxrabbit) = broadcast::channel(100);
-    let state = AppState { jwt: String::from("secret"), tx, redis: Mutex::from(redis), txmoves };
+    let (txgames, _rxrabbit) = broadcast::channel(100);
+    let state = AppState { jwt: String::from("secret"), tx, redis: Mutex::from(redis), txmoves, txgames };
     let state = Arc::new(state);
 
     let lapin_state = state.clone();
@@ -69,6 +71,7 @@ pub struct AppState {
     tx: broadcast::Sender<Msg>,
     redis: Mutex<Connection>,
     txmoves: broadcast::Sender<MoveEvent>,
+    txgames: broadcast::Sender<GameEvent>,
 }
 
 async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>, user: UserData) -> impl IntoResponse {
