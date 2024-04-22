@@ -318,6 +318,12 @@ pub struct Game {
     pub first_user_turn: bool,
     pub blocked: bool,
     pub current_state: String,
+    pub ai_type: AIType,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+pub enum AIType {
+    None, Random,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

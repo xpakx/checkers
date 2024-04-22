@@ -8,7 +8,6 @@ use crate::AppState;
 
 use super::MOVES_EXCHANGE;
 
-
 #[derive(Clone, Serialize, Deserialize)]
 pub struct MoveEvent {
     pub game_id: usize,

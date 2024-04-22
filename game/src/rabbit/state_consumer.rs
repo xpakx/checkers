@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
-use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
+use lapin::{message::{Delivery, DeliveryResult}, options::BasicAckOptions, Channel};
 use redis::Commands;
 use ::serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
-use crate::{rabbit::MOVES_EXCHANGE, AppState, Game, Msg};
+use crate::{rabbit::MOVES_EXCHANGE, AIType, AppState, Game, Msg};
 
 
 pub fn set_state_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc<AppState>) {
@@ -26,65 +26,8 @@ pub fn set_state_delegate(consumer: lapin::Consumer, channel: Channel, state: Ar
                     }
                 };
 
-                let message = std::str::from_utf8(&delivery.data).unwrap();
-                let message: StateEvent = match serde_json::from_str(message) {
-                    Ok(msg) => msg,
-                    Err(err) => {
-                        error!("Failed to deserialize state event: {:?}", err);
-                        return; // TODO
-                    }
-                };
-                info!("Received message: {:?}", &message);
-
-                if message.error {
-                    debug!("Error in state event for game {}.", message.game_id);
-                    let msg = Msg { msg: message.error_message.unwrap(), room: message.game_id, user: None };
-                    let _ = state.tx.send(msg);
-                    return; // TODO
-                }
-
-                if message.status != GameStatus::NotFinished {
-                    debug!("Finished state event for game {}.", message.game_id);
-                    let msg = Msg { msg: "Game is already finished.".into(), room: message.game_id, user: None };
-                    let _ = state.tx.send(msg);
-                    return; // TODO
-                }
-
-                debug!("Adding state for game {} to Redis", message.game_id);
-                // TODO
-                let game_db = Game {
-                    blocked: false,
-                    finished: false,
-                    first_user_turn: message.user_turn,
-                    id: message.game_id,
-                    opponent: message.opponent,
-                    user: message.user,
-                    current_state: message.current_state,
-                };
-
-                let game_data = serde_json::to_string(&game_db).unwrap();
-                let _: () = state.redis
-                    .lock()
-                    .unwrap()
-                    .set(format!("room_{}", message.game_id), game_data.clone()).unwrap();
-
-                // TODO
-                let msg = Msg { msg: game_data, room: message.game_id, user: None };
-                let _ = state.tx.send(msg);
-
-                if !message.user_turn && message.ai_type != AIType::None {
-                    let engine_event = String::from(""); // TODO
-                    if let Err(err) = channel
-                        .basic_publish(
-                            MOVES_EXCHANGE,
-                            "move_ai",
-                            Default::default(),
-                            engine_event.into_bytes().as_slice(),
-                            Default::default(),
-                            )
-                            .await {
-                                error!("Failed to publish message to destination exchange: {:?}", err);
-                            };
+                if let Ok(game) = get_game_from_message(&delivery, state.clone()) {
+                    process_message(game, state, channel).await;
                 }
 
                 delivery
@@ -95,6 +38,75 @@ pub fn set_state_delegate(consumer: lapin::Consumer, channel: Channel, state: Ar
         }
     }
     );
+}
+
+async fn process_message(game: Game, state: Arc<AppState>, channel: Channel) {
+    debug!("Adding state for game {} to Redis", game.id);
+    let game_data = serde_json::to_string(&game).unwrap();
+    let _: () = state.redis
+        .lock()
+        .unwrap()
+        .set(format!("room_{}", game.id), game_data.clone()).unwrap();
+    let msg = Msg { msg: game_data, room: game.id, user: None };
+    let _ = state.tx.send(msg);
+
+    if !game.first_user_turn && game.ai_type != AIType::None {
+        let engine_event = AIMoveEvent {
+            game_id: game.id,
+            game_state: game.current_state,
+            ruleset: RuleSet::British, // TODO
+        };
+        let engine_event = serde_json::to_string(&engine_event).unwrap();
+        if let Err(err) = channel
+            .basic_publish(
+                MOVES_EXCHANGE,
+                "move_ai",
+                Default::default(),
+                engine_event.into_bytes().as_slice(),
+                Default::default(),
+                )
+                .await {
+                    error!("Failed to publish message to destination exchange: {:?}", err);
+                };
+    }
+}
+
+fn get_game_from_message(delivery: &Delivery, state: Arc<AppState>) -> Result<Game, ()> {
+    let message = std::str::from_utf8(&delivery.data).unwrap();
+    let message: StateEvent = match serde_json::from_str(message) {
+        Ok(msg) => msg,
+        Err(err) => {
+            error!("Failed to deserialize state event: {:?}", err);
+            return Err(());
+        }
+    };
+    info!("Received message: {:?}", &message);
+
+    if message.error {
+        debug!("Error in state event for game {}.", message.game_id);
+        let msg = Msg { msg: message.error_message.unwrap(), room: message.game_id, user: None };
+        let _ = state.tx.send(msg);
+        return Err(());
+    }
+
+    if message.status != GameStatus::NotFinished {
+        debug!("Finished state event for game {}.", message.game_id);
+        let msg = Msg { msg: "Game is already finished.".into(), room: message.game_id, user: None };
+        let _ = state.tx.send(msg);
+        return Err(());
+    }
+
+    // TODO
+    Ok(Game {
+        blocked: false,
+        finished: false,
+        first_user_turn: message.user_turn,
+        id: message.game_id,
+        opponent: message.opponent,
+        user: message.user,
+        current_state: message.current_state,
+        ai_type: message.ai_type,
+    })
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -120,17 +132,21 @@ pub enum GameType {
     User, AI,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum RuleSet {
     British,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub enum AIType {
-    None, Random,
-}
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum GameStatus {
     NotFinished, Won, Lost, Drawn,
+}
+
+
+#[derive(Clone, Serialize, Deserialize)]
+struct AIMoveEvent {
+    pub game_id: usize,
+    pub game_state: String,
+    pub ruleset: RuleSet,
 }
