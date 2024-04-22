@@ -5,7 +5,7 @@ use redis::Commands;
 use ::serde::{Deserialize, Serialize};
 use tracing::{info, error};
 
-use crate::{AppState, Game, GameType, Msg};
+use crate::{AppState, Game, GameStatus, GameType, Msg};
 
 use super::{state_consumer::AIMoveEvent, MOVES_EXCHANGE};
 
@@ -67,13 +67,23 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
 
     game.current_state = event.new_state;
     game.blocked = false;
+    if event.finished {
+        game.finished = true;
+        game.status = match (event.lost, event.won, game.first_user_turn) {
+            (true, false, true) => GameStatus::Lost,
+            (false, true, true) => GameStatus::Won,
+            (true, false, false) => GameStatus::Won,
+            (false, true, false) => GameStatus::Lost,
+            _ => GameStatus::Drawn,
+        };
+    }
     game.first_user_turn = !game.first_user_turn;
+
     let game_data = serde_json::to_string(&game).unwrap();
     let _: () = state.redis
         .lock()
         .unwrap()
         .set(format!("room_{}", game.id), game_data.clone()).unwrap();
-    // game finished?
 
     let msg = Msg { msg: "Move accepted".into(), room: game.id, user: Some(game.user) }; // TODO: more informative response
     let _ = state.tx.send(msg);
@@ -125,4 +135,7 @@ struct EngineEvent {
     row: usize,
     column: usize,
     ai: bool,
+    finished: bool,
+    lost: bool,
+    won: bool,
 }
