@@ -1,4 +1,4 @@
-use std::{sync::Arc, time::Duration};
+use std::sync::Arc;
 
 use lapin::Channel;
 use serde::{Deserialize, Serialize};
@@ -20,11 +20,10 @@ pub struct MoveEvent {
     pub ai: bool,
 }
 
-pub async fn move_publisher(channel: Channel, state: Arc<AppState>) {
-    let mut rx = state.txmoves.subscribe();
+pub fn move_publisher(channel: Channel, state: Arc<AppState>) {
 
-    let chan = channel.clone();
-    let send_task = tokio::spawn(async move {
+    tokio::spawn(async move {
+        let mut rx = state.txmoves.subscribe();
         while let Ok(event) = rx.recv().await {
             //TODO
             let msg = serde_json::to_string(&event).unwrap();
@@ -32,7 +31,7 @@ pub async fn move_publisher(channel: Channel, state: Arc<AppState>) {
                 true => "move_ai", // is it even needed?
                 false => "move",
             };
-            if let Err(err) = chan
+            if let Err(err) = channel
                 .basic_publish(
                     MOVES_EXCHANGE,
                     routing_key,
@@ -43,16 +42,12 @@ pub async fn move_publisher(channel: Channel, state: Arc<AppState>) {
                     .await {
                         error!("Failed to publish message to destination exchange: {:?}", err);
                     };
+
+            // TODO?
+            match channel.status().connected() {
+                false => break,
+                true => {},
+            }
         }
     });
-
-    let mut test_interval = tokio::time::interval(Duration::from_secs(5));
-    loop {
-        test_interval.tick().await;
-        match channel.status().connected() {
-            false => break,
-            true => {},
-        }
-    }
-    send_task.abort();
 }

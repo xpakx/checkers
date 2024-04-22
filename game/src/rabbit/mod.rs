@@ -162,9 +162,7 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool, state: Arc<AppState>) -> 
     set_engine_delegate(engine_consumer, channel.clone(), state.clone());
     set_state_delegate(state_consumer, channel.clone(), state.clone());
 
-    let move_channel = channel.clone();
-    let move_state = state.clone();
-    tokio::spawn(async move {move_publisher(move_channel, move_state).await});
+    move_publisher(channel.clone(), state.clone());
 
     let mut test_interval = tokio::time::interval(Duration::from_secs(5));
     loop {
