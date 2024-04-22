@@ -4,10 +4,11 @@ use deadpool_lapin::lapin::types::FieldTable;
 use lapin::{options::{BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions}, ExchangeKind};
 use tracing::{debug, info};
 
-use crate::{rabbit::{engine_consumer::set_engine_delegate, state_consumer::set_state_delegate}, AppState};
+use crate::{rabbit::{engine_consumer::set_engine_delegate, move_publisher::move_publisher, state_consumer::set_state_delegate}, AppState};
 
 mod engine_consumer;
 mod state_consumer;
+pub mod move_publisher;
 
 const UPDATES_EXCHANGE: &str = "checkers.updates.topic";
 const GAMES_EXCHANGE: &str = "checkers.games.topic";
@@ -15,7 +16,7 @@ const GAMES_EXCHANGE: &str = "checkers.games.topic";
 pub const STATE_EXCHANGE: &str = "checkers.state.topic";
 const STATE_QUEUE: &str = "checkers.states.queue";
 
-const MOVES_EXCHANGE: &str = "checkers.moves.topic";
+pub const MOVES_EXCHANGE: &str = "checkers.moves.topic";
 
 pub const ENGINE_EXCHANGE: &str = "checkers.engine.topic";
 const ENGINE_QUEUE: &str = "checkers.engine.queue";
@@ -160,6 +161,11 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool, state: Arc<AppState>) -> 
     debug!("Consumer connected, waiting for messages");
     set_engine_delegate(engine_consumer, channel.clone(), state.clone());
     set_state_delegate(state_consumer, channel.clone(), state.clone());
+
+    let move_channel = channel.clone();
+    let move_state = state.clone();
+    tokio::spawn(async move {move_publisher(move_channel, move_state).await});
+
     let mut test_interval = tokio::time::interval(Duration::from_secs(5));
     loop {
         test_interval.tick().await;

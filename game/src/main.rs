@@ -10,6 +10,7 @@ use futures::{sink::SinkExt, stream::StreamExt};
 use jsonwebtoken::{decode, DecodingKey, Validation};
 
 use crate::rabbit::lapin_listen;
+use crate::rabbit::move_publisher::MoveEvent;
 
 mod rabbit;
 
@@ -34,7 +35,8 @@ async fn main() {
         .expect("Failed to connect to Redis");
     info!("Connected to redis…");
 
-    let state = AppState { jwt: String::from("secret"), tx, redis: Mutex::from(redis) };
+    let (txmoves, _rxrabbit) = broadcast::channel(100);
+    let state = AppState { jwt: String::from("secret"), tx, redis: Mutex::from(redis), txmoves };
     let state = Arc::new(state);
 
     let lapin_state = state.clone();
@@ -66,6 +68,7 @@ pub struct AppState {
     jwt: String,
     tx: broadcast::Sender<Msg>,
     redis: Mutex<Connection>,
+    txmoves: broadcast::Sender<MoveEvent>,
 }
 
 async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>, user: UserData) -> impl IntoResponse {
@@ -73,7 +76,6 @@ async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>, user: 
 }
 
 #[derive(Clone)]
-#[allow(dead_code)]
 pub struct Msg {
     msg: String,
     room: usize,
