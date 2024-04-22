@@ -215,6 +215,7 @@ fn make_move(state: Arc<AppState>, username: &String, room: usize, request: Move
         game_state: game.current_state,
         row: request.x,
         column: request.y,
+        ruleset: game.ruleset,
     };
     let _ = state.txmoves.send(event);
     Ok(())
@@ -319,11 +320,29 @@ pub struct Game {
     pub blocked: bool,
     pub current_state: String,
     pub ai_type: AIType,
+    pub game_type: GameType,
+    pub ruleset: RuleSet,
+    pub status: GameStatus,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+pub enum AIType {
+    None, Random,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
-pub enum AIType {
-    None, Random,
+pub enum GameType {
+    User, AI,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum RuleSet {
+    British,
+}
+
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+pub enum GameStatus {
+    NotFinished, Won, Lost, Drawn,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

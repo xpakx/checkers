@@ -5,7 +5,7 @@ use redis::Commands;
 use ::serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
-use crate::{rabbit::MOVES_EXCHANGE, AIType, AppState, Game, Msg};
+use crate::{rabbit::MOVES_EXCHANGE, AIType, AppState, Game, GameStatus, GameType, Msg, RuleSet};
 
 
 pub fn set_state_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc<AppState>) {
@@ -50,11 +50,12 @@ async fn process_message(game: Game, state: Arc<AppState>, channel: Channel) {
     let msg = Msg { msg: game_data, room: game.id, user: None };
     let _ = state.tx.send(msg);
 
-    if !game.first_user_turn && game.ai_type != AIType::None {
+    if !game.first_user_turn && game.game_type == GameType::AI {
         let engine_event = AIMoveEvent {
             game_id: game.id,
             game_state: game.current_state,
-            ruleset: RuleSet::British, // TODO
+            ruleset: game.ruleset,
+            ai_type: game.ai_type,
         };
         let engine_event = serde_json::to_string(&engine_event).unwrap();
         if let Err(err) = channel
@@ -106,6 +107,9 @@ fn get_game_from_message(delivery: &Delivery, state: Arc<AppState>) -> Result<Ga
         user: message.user,
         current_state: message.current_state,
         ai_type: message.ai_type,
+        game_type: message.game_type,
+        ruleset: message.ruleset,
+        status: message.status,
     })
 }
 
@@ -115,7 +119,6 @@ struct StateEvent {
     game_id: usize, // TODO
     error: bool,
     error_message: Option<String>,
-
     user: String,
     opponent: String,
     user_turn: bool,
@@ -127,26 +130,11 @@ struct StateEvent {
     status: GameStatus,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
-pub enum GameType {
-    User, AI,
-}
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum RuleSet {
-    British,
-}
-
-
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub enum GameStatus {
-    NotFinished, Won, Lost, Drawn,
-}
-
 
 #[derive(Clone, Serialize, Deserialize)]
 struct AIMoveEvent {
     pub game_id: usize,
     pub game_state: String,
     pub ruleset: RuleSet,
+    pub ai_type: AIType,
 }

@@ -4,7 +4,7 @@ use lapin::Channel;
 use serde::{Deserialize, Serialize};
 use tracing::error;
 
-use crate::AppState;
+use crate::{AppState, RuleSet};
 
 use super::MOVES_EXCHANGE;
 
@@ -14,7 +14,7 @@ pub struct MoveEvent {
     pub game_state: String,
     pub column: usize,
     pub row: usize,
-    // pub ruleset: GameRuleset,
+    pub ruleset: RuleSet,
     #[serde(skip_serializing)]
     pub ai: bool,
 }
