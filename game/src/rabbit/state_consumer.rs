@@ -33,7 +33,7 @@ pub fn set_state_delegate(consumer: lapin::Consumer, channel: Channel, state: Ar
                 delivery
                     .ack(BasicAckOptions::default())
                     .await
-                    .expect("Failed to acknowledge message"); // TODO
+                    .expect("Failed to acknowledge message");
             }
         }
     }
@@ -97,7 +97,6 @@ fn get_game_from_message(delivery: &Delivery, state: Arc<AppState>) -> Result<Ga
         return Err(());
     }
 
-    // TODO
     Ok(Game {
         blocked: false,
         finished: false,

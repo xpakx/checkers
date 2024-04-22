@@ -65,7 +65,6 @@ async fn main() {
         .unwrap();
 }
 
-#[allow(dead_code)]
 pub struct AppState {
     jwt: String,
     tx: broadcast::Sender<Msg>,
