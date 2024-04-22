@@ -189,7 +189,7 @@ fn make_move(state: Arc<AppState>, username: &String, room: usize, request: Move
     let event = MoveEvent {
         ai: false,
         game_id: game.id,
-        game_state: "".into(), // TODO
+        game_state: game.current_state,
         row: request.x,
         column: request.y,
     };
@@ -294,6 +294,7 @@ pub struct Game {
     pub finished: bool,
     pub first_user_turn: bool,
     pub blocked: bool,
+    pub current_state: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

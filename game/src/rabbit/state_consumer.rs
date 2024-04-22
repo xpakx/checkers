@@ -59,6 +59,7 @@ pub fn set_state_delegate(consumer: lapin::Consumer, channel: Channel, state: Ar
                     id: message.game_id,
                     opponent: message.opponent,
                     user: message.user,
+                    current_state: message.current_state,
                 };
 
                 let game_data = serde_json::to_string(&game_db).unwrap();
