@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use lapin::{message::{Delivery, DeliveryResult}, options::BasicAckOptions, Channel};
+use redis::Commands;
 use ::serde::{Deserialize, Serialize};
 use tracing::{info, error};
 
-use crate::AppState;
+use crate::{AppState, Game, Msg};
 
 pub fn set_engine_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc<AppState>) {
     consumer.set_delegate({
@@ -38,12 +39,44 @@ pub fn set_engine_delegate(consumer: lapin::Consumer, channel: Channel, state: A
     );
 }
 
-async fn process_message(event: EngineEvent, _state: Arc<AppState>, _channel: Channel) {
+async fn process_message(event: EngineEvent, state: Arc<AppState>, _channel: Channel) {
+    let game_db: Option<String> = state.redis
+        .lock()
+        .unwrap()
+        .get(format!("room_{}", event.game_id)).unwrap();
+    let Some(game_db) = game_db else {
+        return; // TODO
+    };
+    let mut game: Game = serde_json::from_str(game_db.as_str()).unwrap();
+
     if !event.legal {
-        // TODO
+        game.blocked = false;
+        let game_data = serde_json::to_string(&game).unwrap();
+        let _: () = state.redis
+            .lock()
+            .unwrap()
+            .set(format!("room_{}", game.id), game_data.clone()).unwrap();
+        if event.ai {
+            let msg = Msg { msg: "Not legal move".into(), room: game.id, user: Some(game.user) }; // TODO: more informative response
+            let _ = state.tx.send(msg);
+        }
         return
     }
 
+    game.current_state = event.new_state;
+    game.blocked = false;
+    game.first_user_turn = !game.first_user_turn;
+    let game_data = serde_json::to_string(&game).unwrap();
+    let _: () = state.redis
+        .lock()
+        .unwrap()
+        .set(format!("room_{}", game.id), game_data.clone()).unwrap();
+    // game finished?
+
+    let msg = Msg { msg: "Move accepted".into(), room: game.id, user: Some(game.user) }; // TODO: more informative response
+    let _ = state.tx.send(msg);
+    // if ai move, sent new event
+    // TODO: send update event
 }
 
 fn get_event_from_message(delivery: &Delivery) -> Result<EngineEvent, ()> {
@@ -68,4 +101,5 @@ struct EngineEvent {
     user: String,
     row: usize,
     column: usize,
+    ai: bool,
 }
