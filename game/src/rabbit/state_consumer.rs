@@ -131,7 +131,7 @@ struct StateEvent {
 
 
 #[derive(Clone, Serialize, Deserialize)]
-struct AIMoveEvent {
+pub struct AIMoveEvent {
     pub game_id: usize,
     pub game_state: String,
     pub ruleset: RuleSet,
