@@ -40,7 +40,7 @@ async fn main() {
     let state = Arc::new(state);
 
     let lapin_state = state.clone();
-    let rabbit_url = "redis://default:redispw@localhost:6379";
+    let rabbit_url = "amqp://guest:guest@localhost:5672";
     let mut cfg = deadpool_lapin::Config::default();
     cfg.url = Some(rabbit_url.into());
     let lapin_pool = cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)).unwrap();
