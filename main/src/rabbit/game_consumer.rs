@@ -32,7 +32,7 @@ pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc
                     Ok(msg) => msg,
                     Err(err) => {
                         error!("Failed to deserialize game event: {:?}", err);
-                        return;
+                        return; // TODO
                     }
                 };
                 info!("Received message: {:?}", &message);

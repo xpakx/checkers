@@ -20,8 +20,7 @@ pub struct MoveEvent {
     pub ai: bool,
 }
 
-pub fn move_publisher(channel: Channel, state: Arc<AppState>) {
-
+pub fn move_publisher(channel: Channel, state: Arc<AppState>) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let mut rx = state.txmoves.subscribe();
         while let Ok(event) = rx.recv().await {
@@ -42,12 +41,6 @@ pub fn move_publisher(channel: Channel, state: Arc<AppState>) {
                     .await {
                         error!("Failed to publish message to destination exchange: {:?}", err);
                     };
-
-            // TODO?
-            match channel.status().connected() {
-                false => break,
-                true => {},
-            }
         }
-    });
+    })
 }

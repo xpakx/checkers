@@ -18,7 +18,7 @@ pub fn set_update_delegate(consumer: lapin::Consumer, state: Arc<AppState>) {
                     Ok(None) => return,
                     Err(error) => {
                         error!("Failed to consume queue message {}", error);
-                        return; // TODO
+                        return; 
                     }
                 };
 
@@ -27,7 +27,7 @@ pub fn set_update_delegate(consumer: lapin::Consumer, state: Arc<AppState>) {
                     Ok(msg) => msg,
                     Err(err) => {
                         error!("Failed to deserialize update event: {:?}", err);
-                        return;
+                        return; // TODO
                     }
                 };
                 info!("Received message: {:?}", &message);
