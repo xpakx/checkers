@@ -1,9 +1,9 @@
-use crate::{ai::Move, board::BitBoard};
+use crate::{board::BitBoard, Color};
 
 mod british;
 
 pub trait Rules {
-    fn get_possible_moves(&self, board: &BitBoard) -> Vec<Move>;
+    fn get_possible_movers(&self, board: &BitBoard, color: Color) -> u32;
 }
 
 pub enum RuleSet {

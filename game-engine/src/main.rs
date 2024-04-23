@@ -21,7 +21,8 @@ async fn main() {
     println!("{}", engine.get_name());
     println!("{:?}", engine.get_move(&bitboard));
     let rules = get_rules(RuleSet::British);
-    println!("{:?}", rules.get_possible_moves(&bitboard));
+    println!("white: {:032b}", rules.get_possible_movers(&bitboard, Color::White));
+    println!("red: {:032b}", rules.get_possible_movers(&bitboard, Color::Red));
 
     let rabbit_url = "amqp://guest:guest@localhost:5672";
     let mut cfg = deadpool_lapin::Config::default();
@@ -133,4 +134,10 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool) -> Result<(), Box<dyn std
     }
 
     Ok(())
+}
+
+#[derive(Debug)]
+pub enum Color {
+    White,
+    Red,
 }
