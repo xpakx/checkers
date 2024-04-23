@@ -39,7 +39,14 @@ impl BritishRules {
         println!("4: {:032b}", movers);
         println!("3: {:032b}", movers_3);
         println!("5: {:032b}", movers_5);
-        movers | movers_3 | movers_5
+        let mut movers = movers | movers_3 | movers_5;
+        if board.white_kings != 0 {
+            let kmovers = (not_occupied >> 4) & board.white_kings;
+            let kmovers_3 = (not_occupied & MASK_3_DOWN) >> 3 & board.white_kings;
+            let kmovers_5 = (not_occupied & MASK_5_DOWN) >> 5 & board.white_kings;
+            movers = movers | kmovers | kmovers_3 | kmovers_5;
+        }
+        movers
     }
 
     fn get_red_movers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
@@ -51,6 +58,13 @@ impl BritishRules {
         println!("4: {:032b}", movers);
         println!("3: {:032b}", movers_3);
         println!("5: {:032b}", movers_5);
-        movers | movers_3 | movers_5
+        let mut movers = movers | movers_3 | movers_5;
+        if board.red_kings != 0 {
+            let kmovers = (not_occupied << 4) & board.red_kings;
+            let kmovers_3 = (not_occupied & MASK_3_UP) << 3 & board.red_kings;
+            let kmovers_5 = (not_occupied & MASK_5_UP) << 5 & board.red_kings;
+            movers = movers | kmovers | kmovers_3 | kmovers_5;
+        }
+        movers
     }
 }
