@@ -35,10 +35,6 @@ impl BritishRules {
         let movers = (not_occupied << 4) & pieces;
         let movers_3 = (not_occupied & MASK_3_UP) << 3 & pieces;
         let movers_5 = (not_occupied & MASK_5_UP) << 5 & pieces;
-        println!("WHITE");
-        println!("4: {:032b}", movers);
-        println!("3: {:032b}", movers_3);
-        println!("5: {:032b}", movers_5);
         let mut movers = movers | movers_3 | movers_5;
         if board.white_kings != 0 {
             let kmovers = (not_occupied >> 4) & board.white_kings;
@@ -54,10 +50,6 @@ impl BritishRules {
         let movers = (not_occupied >> 4) & pieces;
         let movers_3 = (not_occupied & MASK_3_DOWN) >> 3 & pieces;
         let movers_5 = (not_occupied & MASK_5_DOWN) >> 5 & pieces;
-        println!("RED");
-        println!("4: {:032b}", movers);
-        println!("3: {:032b}", movers_3);
-        println!("5: {:032b}", movers_5);
         let mut movers = movers | movers_3 | movers_5;
         if board.red_kings != 0 {
             let kmovers = (not_occupied << 4) & board.red_kings;
@@ -66,5 +58,81 @@ impl BritishRules {
             movers = movers | kmovers | kmovers_3 | kmovers_5;
         }
         movers
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::Color;
+
+    #[test]
+    fn test_full_white_board() {
+        let board = BitBoard {
+            white_pawns: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b1111_1111_1111_1111_1111_1111_1111_1111,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+        };
+
+        let rules = BritishRules::new();
+        let movers = rules.get_possible_movers(&board, Color::White);
+        assert_eq!(movers, 0b0000_0000_0000_0000_0000_0000_0000_0000);
+    }
+
+    #[test]
+    fn test_full_red_board() {
+        let board = BitBoard {
+            white_pawns: 0b1111_1111_1111_1111_1111_1111_1111_1111,
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+        };
+
+        let rules = BritishRules::new();
+        let movers = rules.get_possible_movers(&board, Color::Red);
+        assert_eq!(movers, 0b0000_0000_0000_0000_0000_0000_0000_0000);
+    }
+
+    #[test]
+    fn test_start_position_red() {
+        let board = BitBoard {
+            white_pawns: 0b1111_1111_1111_0000_0000_0000_0000_0000,
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_0000_0000_0000_1111_1111_1111,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+        };
+
+        let rules = BritishRules::new();
+        let movers = rules.get_possible_movers(&board, Color::Red);
+        assert_eq!(movers, 0b0000_0000_0000_0000_0000_1111_0000_0000);
+    }
+
+    #[test]
+    fn test_start_position_white() {
+        let board = BitBoard {
+            white_pawns: 0b1111_1111_1111_0000_0000_0000_0000_0000,
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_0000_0000_0000_1111_1111_1111,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+        };
+
+        let rules = BritishRules::new();
+        let movers = rules.get_possible_movers(&board, Color::White);
+        assert_eq!(movers, 0b0000_0000_1111_0000_0000_0000_0000_0000);
+    }
+
+    #[test]
+    fn test_single_white() {
+        let board = BitBoard {
+            white_pawns: 0b0000_0000_0000_0010_0000_0000_0000_0000,
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_0000_0000_0000_0000_0000_1111,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+        };
+
+        let rules = BritishRules::new();
+        let movers = rules.get_possible_movers(&board, Color::White);
+        assert_eq!(movers, 0b0000_0000_0000_0010_0000_0000_0000_0000);
     }
 }
