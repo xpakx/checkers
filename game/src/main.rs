@@ -1,4 +1,4 @@
-use rabbit::game_publisher::GameEvent;
+use rabbit::{game_publisher::GameEvent, update_publisher::UpdateEvent};
 use redis::{Connection, Commands};
 use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
@@ -38,7 +38,8 @@ async fn main() {
 
     let (txmoves, _rxrabbit) = broadcast::channel(100);
     let (txgames, _rxrabbit) = broadcast::channel(100);
-    let state = AppState { jwt: String::from("secret"), tx, redis: Mutex::from(redis), txmoves, txgames };
+    let (txupdates, _rxrabbit) = broadcast::channel(100);
+    let state = AppState { jwt: String::from("secret"), tx, redis: Mutex::from(redis), txmoves, txgames, txupdates };
     let state = Arc::new(state);
 
     let lapin_state = state.clone();
@@ -71,6 +72,7 @@ pub struct AppState {
     redis: Mutex<Connection>,
     txmoves: broadcast::Sender<MoveEvent>,
     txgames: broadcast::Sender<GameEvent>,
+    txupdates: broadcast::Sender<UpdateEvent>,
 }
 
 async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>, user: UserData) -> impl IntoResponse {
@@ -339,7 +341,7 @@ pub enum RuleSet {
     British,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub enum GameStatus {
     NotFinished, Won, Lost, Drawn,
 }
