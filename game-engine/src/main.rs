@@ -2,8 +2,18 @@ use std::time::Duration;
 
 use lapin::{options::{BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions}, types::FieldTable, ExchangeKind};
 
+mod board;
+
 #[tokio::main]
 async fn main() {
+    let board = "xxxxxxxxxxxx........oooooooooooo";
+    let bitboard = board::generate_bit_board(board.into());
+    println!("{:?}", bitboard);
+    let bitboard = bitboard.unwrap();
+
+    println!("{:032b}", bitboard.white_pawns);
+    println!("{:032b}", bitboard.red_pawns);
+
     let rabbit_url = "amqp://guest:guest@localhost:5672";
     let mut cfg = deadpool_lapin::Config::default();
     cfg.url = Some(rabbit_url.into());
