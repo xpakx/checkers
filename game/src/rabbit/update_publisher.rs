@@ -11,7 +11,7 @@ use super::UPDATES_EXCHANGE;
 #[derive(Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct UpdateEvent {
-    pub game_id: i64,
+    pub game_id: usize,
     pub status: GameStatus,
     pub current_state: String,
     pub user_turn: bool,

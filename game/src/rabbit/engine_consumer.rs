@@ -7,7 +7,7 @@ use tracing::{info, error};
 
 use crate::{AppState, Game, GameStatus, GameType, Msg};
 
-use super::{state_consumer::AIMoveEvent, MOVES_EXCHANGE};
+use super::{state_consumer::AIMoveEvent, update_publisher::UpdateEvent, MOVES_EXCHANGE};
 
 pub fn set_engine_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc<AppState>) {
     consumer.set_delegate({
@@ -88,7 +88,15 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
     let msg = Msg { msg: "Move accepted".into(), room: game.id, user: Some(game.user) }; // TODO: more informative response
     let _ = state.tx.send(msg);
 
-    // TODO: send update event
+    let event = UpdateEvent {
+        game_id: game.id,
+        status: game.status,
+        current_state: game.current_state.clone(),
+        user_turn: game.first_user_turn,
+        last_move: "".into(), // TODO
+        timestamp: chrono::Utc::now(),
+    };
+    let _ = state.txupdates.send(event);
 
     if !game.first_user_turn && game.game_type == GameType::AI && !game.finished {
         let engine_event = AIMoveEvent {
