@@ -3,6 +3,10 @@ use std::time::Duration;
 use lapin::{options::{BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions}, types::FieldTable, ExchangeKind};
 
 mod board;
+mod ai;
+mod rules;
+use crate::ai::{get_engine, EngineType};
+use crate::rules::{get_rules, RuleSet};
 
 #[tokio::main]
 async fn main() {
@@ -13,6 +17,11 @@ async fn main() {
 
     println!("{:032b}", bitboard.white_pawns);
     println!("{:032b}", bitboard.red_pawns);
+    let mut engine = get_engine(EngineType::Random);
+    println!("{}", engine.get_name());
+    println!("{:?}", engine.get_move(&bitboard));
+    let rules = get_rules(RuleSet::British);
+    println!("{:?}", rules.get_possible_moves(&bitboard));
 
     let rabbit_url = "amqp://guest:guest@localhost:5672";
     let mut cfg = deadpool_lapin::Config::default();
