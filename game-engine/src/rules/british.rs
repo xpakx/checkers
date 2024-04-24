@@ -1,3 +1,5 @@
+use std::vec;
+
 use crate::{board::BitBoard, rules::Rules, Color};
 
 // no flying kings, 8x8, pawns cannot move backwards, 
@@ -196,6 +198,66 @@ impl BritishRules {
         }
 
         return moves
+    }
+
+    // TODO?: eliminate recursion?
+    fn get_white_jumps(&self, board: &BitBoard, start: u32, mover: u32, captures: u32) -> Vec<u32> {
+        let not_occupied: u32 = start | captures | !(board.white_pawns | board.red_pawns | board.red_kings | board.white_kings);
+        let opponent = (board.red_pawns | board.red_kings) ^ captures;
+
+        let mut moves = Vec::new();
+        let targets = (not_occupied << 4) & opponent;
+        if targets != 0 && ((targets & MASK_3_UP) << 3) & mover != 0 {
+            let mut result = self.get_white_jumps(board, start, mover >> 7, captures | (mover >> 3));
+            moves.append(&mut result);
+        }
+        if targets != 0 && ((targets & MASK_5_UP) << 5) & mover != 0 {
+            let mut result = self.get_white_jumps(board, start, mover >> 9, captures | (mover >> 5));
+            moves.append(&mut result);
+        }
+
+        let targets = ((not_occupied & MASK_3_UP) << 3) & opponent;
+        if targets != 0 && (targets << 4) & mover != 0 {
+            let mut result = self.get_white_jumps(board, start, mover >> 7, captures | (mover >> 4));
+            moves.append(&mut result);
+        }
+
+        let targets = ((not_occupied & MASK_5_UP) << 5) & opponent;
+        if targets != 0 && (targets << 4) & mover != 0 {
+            let mut result = self.get_white_jumps(board, start, mover >> 9, captures | (mover >> 4));
+            moves.append(&mut result);
+        }
+
+        if (board.white_kings & mover) != 0 {
+            let targets = (not_occupied >> 4) & opponent;
+            if targets != 0 && ((targets & MASK_3_DOWN) >> 3) & mover != 0 {
+                let mut result = self.get_white_jumps(board, start, mover << 7, captures | (mover << 3));
+                moves.append(&mut result);
+            }
+            if targets != 0 && ((targets & MASK_5_DOWN) >> 5) & mover != 0 {
+                let mut result = self.get_white_jumps(board, start, mover << 9, captures | (mover << 5));
+                moves.append(&mut result);
+            }
+            let targets = ((not_occupied & MASK_3_DOWN) >> 3) & opponent;
+            if targets != 0 && (targets >> 4) & mover != 0 {
+                let mut result = self.get_white_jumps(board, start, mover << 7, captures | (mover << 4));
+                moves.append(&mut result);
+            }
+
+            let targets = ((not_occupied & MASK_5_DOWN) >> 5) & opponent;
+            if targets != 0 && (targets >> 4) & mover != 0 {
+                let mut result = self.get_white_jumps(board, start, mover << 9, captures | (mover << 4));
+                moves.append(&mut result);
+            }
+        }
+
+        if moves.len() == 0 {
+            if captures != 0 {
+                return vec![captures | start | mover]
+            }
+            return vec![]
+        }
+        moves
     }
 }
 
