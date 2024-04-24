@@ -132,6 +132,36 @@ impl BritishRules {
         }
         jumpers
     }
+
+    // mover should have only one bit set
+    fn get_white_moves(&self, board: &BitBoard, mover: u32) -> Vec<u32> {
+        let not_occupied: u32 = !(board.white_pawns | board.red_pawns | board.red_kings | board.white_kings);
+    
+        let mut moves = Vec::new();
+        if (not_occupied << 4) & mover != 0 {
+            moves.push(mover | (mover >> 4));
+        }
+        if (not_occupied & MASK_3_UP) << 3 & mover != 0 {
+            moves.push(mover | (mover >> 3));
+        }
+        if (not_occupied & MASK_5_UP) << 5 & mover != 0 {
+            moves.push(mover | (mover >> 5));
+        }
+
+        if (board.white_kings & mover) != 0 {
+            if (not_occupied >> 4) & mover != 0 {
+                moves.push(mover | (mover >> 4));
+            }
+            if (not_occupied & MASK_3_DOWN) >> 3 & mover != 0 {
+                moves.push(mover | (mover >> 3));
+            }
+            if (not_occupied & MASK_5_DOWN) >> 5 & mover != 0 {
+                moves.push(mover | (mover >> 5));
+            }
+        }
+
+        return moves
+    }
 }
 
 #[cfg(test)]
@@ -263,5 +293,26 @@ mod tests {
         let rules = BritishRules::new();
         let movers = rules.get_possible_movers(&board, Color::Red);
         assert_eq!(movers, 0b0000_0000_0000_0000_0100_0000_1111_0000);
+    }
+
+    #[test]
+    fn test_get_white_moves_regular_pawn() {
+        let board = BitBoard {
+            white_pawns:   0b0000_0000_0000_0001_0000_0000_0000_0000,
+            white_kings:   0,
+            red_pawns:     0,
+            red_kings:     0,
+        };
+
+        let expected_moves = vec![
+                           0b0000_0000_0000_0001_0001_0000_0000_0000,
+                           0b0000_0000_0000_0001_0010_0000_0000_0000,
+        ];
+
+        let mover =        0b0000_0000_0000_0001_0000_0000_0000_0000;
+        let rules = BritishRules::new();
+        let moves = rules.get_white_moves(&board, mover);
+
+        assert_eq!(moves, expected_moves);
     }
 }
