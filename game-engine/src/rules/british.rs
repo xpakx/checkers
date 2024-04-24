@@ -2,6 +2,8 @@ use std::collections::VecDeque;
 
 use crate::{board::BitBoard, rules::Rules, Color};
 
+use super::RuleDefiniton;
+
 // no flying kings, 8x8, pawns cannot move backwards, 
 // any capture sequence can be chosen, but captures are forced, 
 // red moves first 
@@ -20,33 +22,50 @@ const MASK_5_DOWN: u32 = 0b1110_0000_1110_0000_1110_0000_1110_0000;
 const MASK_5_UP: u32 = 0b0000_0111_0000_0111_0000_0111_0000_0111;
 
 impl Rules for BritishRules {
+    fn get_definition(&self) -> RuleDefiniton {
+        RuleDefiniton { 
+            backward_pawns: false,
+            board_size: 8,
+            capture_forced: true,
+            flying_kings: false,
+            maximal_capture: false,
+        }
+    }
+
     fn get_possible_movers(&self, board: &BitBoard, color: Color) -> u32 {
         let not_occupied: u32 = !(board.white_pawns | board.red_pawns | board.red_kings | board.white_kings);
-        let movers = match color {
-            Color::White => self.get_white_possible_movers(board, not_occupied),
-            Color::Red => self.get_red_possible_movers(board, not_occupied),
-        };
-        movers
+        match color {
+            Color::White => self.get_white_movers(board, not_occupied),
+            Color::Red => self.get_red_movers(board, not_occupied),
+        }
+    }
+
+    fn get_possible_jumpers(&self, board: &BitBoard, color: Color) -> u32 {
+        let not_occupied: u32 = !(board.white_pawns | board.red_pawns | board.red_kings | board.white_kings);
+        match color {
+            Color::White => self.get_white_jumpers(board, not_occupied),
+            Color::Red => self.get_red_jumpers(board, not_occupied),
+        }
+    }
+
+    // mover should have only one bit set
+    fn get_moves(&self, board: &BitBoard, mover: u32, color: Color) -> Vec<u32> {
+        match color {
+            Color::White => self.get_white_moves(board, mover),
+            Color::Red => self.get_red_moves(board, mover),
+        }
+    }
+
+    // mover should have only one bit set
+    fn get_jumps(&self, board: &BitBoard, mover: u32, color: Color) -> Vec<u32> {
+        match color {
+            Color::White => self.get_white_jumps(board, mover),
+            Color::Red => self.get_red_jumps(board, mover),
+        }
     }
 }
 
 impl BritishRules {
-    fn get_white_possible_movers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
-        let jumpers = self.get_white_jumpers(board, not_occupied);
-        if jumpers != 0 {
-            return jumpers
-        }
-        return self.get_white_movers(board, not_occupied)
-    }
-
-    fn get_red_possible_movers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
-        let jumpers = self.get_red_jumpers(board, not_occupied);
-        if jumpers != 0 {
-            return jumpers
-        }
-        return self.get_red_movers(board, not_occupied)
-    }
-
     fn get_white_movers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
         let pieces = board.white_pawns | board.white_kings;
         let movers = (not_occupied << 4) & pieces;
@@ -135,14 +154,6 @@ impl BritishRules {
         jumpers
     }
 
-    // mover should have only one bit set
-    fn get_moves(&self, board: &BitBoard, mover: u32, color: Color) -> Vec<u32> {
-        match color {
-            Color::White => self.get_white_moves(board, mover),
-            Color::Red => self.get_red_moves(board, mover),
-        }
-    }
-
     fn get_white_moves(&self, board: &BitBoard, mover: u32) -> Vec<u32> {
         let not_occupied: u32 = !(board.white_pawns | board.red_pawns | board.red_kings | board.white_kings);
     
@@ -198,13 +209,6 @@ impl BritishRules {
         }
 
         return moves
-    }
-
-    fn get_jumps(&self, board: &BitBoard, mover: u32, color: Color) -> Vec<u32> {
-        match color {
-            Color::White => self.get_white_jumps(board, mover),
-            Color::Red => self.get_red_jumps(board, mover),
-        }
     }
 
     fn get_white_jumps(&self, board: &BitBoard, start: u32) -> Vec<u32> {
@@ -482,7 +486,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_movers(&board, Color::White);
+        let movers = rules.get_possible_jumpers(&board, Color::White);
         assert_eq!(movers, 0b0000_0000_0000_0010_0000_0000_0000_0000);
     }
 
@@ -496,8 +500,8 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_movers(&board, Color::White);
-        assert_eq!(movers, 0b0000_1111_0000_0010_0000_0000_0000_0000);
+        let movers = rules.get_possible_jumpers(&board, Color::White);
+        assert_eq!(movers, 0b0000_0000_0000_0000_0000_0000_0000_0000);
     }
 
     #[test]
@@ -510,7 +514,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_movers(&board, Color::Red);
+        let movers = rules.get_possible_jumpers(&board, Color::Red);
         assert_eq!(movers, 0b0000_0000_0000_0000_0100_0000_0000_0000);
     }
 
@@ -524,8 +528,8 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_movers(&board, Color::Red);
-        assert_eq!(movers, 0b0000_0000_0000_0000_0100_0000_1111_0000);
+        let movers = rules.get_possible_jumpers(&board, Color::Red);
+        assert_eq!(movers, 0b0000_0000_0000_0000_0000_0000_0000_0000);
     }
 
     #[test]

@@ -21,6 +21,8 @@ async fn main() {
     println!("{}", engine.get_name());
     println!("{:?}", engine.get_move(&bitboard));
     let rules = get_rules(RuleSet::British);
+
+    println!("rules: {:?}", rules.get_definition());
     println!("white: {:032b}", rules.get_possible_movers(&bitboard, Color::White));
     println!("red: {:032b}", rules.get_possible_movers(&bitboard, Color::Red));
 
