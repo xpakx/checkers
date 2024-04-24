@@ -346,7 +346,77 @@ mod tests {
 
         let mover =        0b0000_0000_0000_0001_0000_0000_0000_0000;
         let rules = BritishRules::new();
-        let moves = rules.get_white_moves(&board, mover);
+        let mut moves = rules.get_moves(&board, mover, Color::White);
+        moves.sort();
+
+        assert_eq!(moves, expected_moves);
+    }
+
+    #[test]
+    fn test_get_white_moves_king() {
+        let board = BitBoard {
+            white_pawns:   0,
+            white_kings:   0b0000_0000_0000_0001_0000_0000_0000_0000,
+            red_pawns:     0,
+            red_kings:     0,
+        };
+
+        let expected_moves = vec![
+                           0b0000_0000_0000_0001_0001_0000_0000_0000,
+                           0b0000_0000_0000_0001_0010_0000_0000_0000,
+                           0b0000_0000_0001_0001_0000_0000_0000_0000,
+                           0b0000_0000_0010_0001_0000_0000_0000_0000,
+        ];
+
+        let mover =        0b0000_0000_0000_0001_0000_0000_0000_0000;
+        let rules = BritishRules::new();
+        let mut moves = rules.get_moves(&board, mover, Color::White);
+        moves.sort();
+
+        assert_eq!(moves, expected_moves);
+    }
+
+    #[test]
+    fn test_get_red_moves_regular_pawn() {
+        let board = BitBoard {
+            white_pawns:   0,
+            white_kings:   0,
+            red_pawns:     0b0000_0000_0000_0001_0000_0000_0000_0000,
+            red_kings:     0,
+        };
+
+        let expected_moves = vec![
+                           0b0000_0000_0001_0001_0000_0000_0000_0000,
+                           0b0000_0000_0010_0001_0000_0000_0000_0000,
+        ];
+
+        let mover =        0b0000_0000_0000_0001_0000_0000_0000_0000;
+        let rules = BritishRules::new();
+        let mut moves = rules.get_moves(&board, mover, Color::Red);
+        moves.sort();
+
+        assert_eq!(moves, expected_moves);
+    }
+
+    #[test]
+    fn test_get_red_moves_king() {
+        let board = BitBoard {
+            white_pawns:   0,
+            white_kings:   0,
+            red_pawns:     0,
+            red_kings:     0b0000_0000_0000_0001_0000_0000_0000_0000,
+        };
+
+        let expected_moves = vec![
+                           0b0000_0000_0000_0001_0001_0000_0000_0000,
+                           0b0000_0000_0001_0001_0000_0000_0000_0000,
+                           0b0000_0000_0010_0001_0000_0000_0000_0000,
+        ];
+
+        let mover =        0b0000_0000_0000_0001_0000_0000_0000_0000;
+        let rules = BritishRules::new();
+        let mut moves = rules.get_moves(&board, mover, Color::Red);
+        moves.sort();
 
         assert_eq!(moves, expected_moves);
     }
