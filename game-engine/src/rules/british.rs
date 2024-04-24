@@ -249,7 +249,7 @@ impl BritishRules {
                     });
             }
 
-            if (board.white_kings & mover) != 0 {
+            if (board.white_kings & start) != 0 {
                 let targets = (not_occupied >> 4) & opponent;
                 if targets != 0 && ((targets & MASK_3_DOWN) >> 3) & mover != 0 {
                     jump_found = true;
