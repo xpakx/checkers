@@ -20,21 +20,32 @@ const MASK_5_UP: u32 = 0b0000_0111_0000_0111_0000_0111_0000_0111;
 impl Rules for BritishRules {
     fn get_possible_movers(&self, board: &BitBoard, color: Color) -> u32 {
         let not_occupied: u32 = !(board.white_pawns | board.red_pawns | board.red_kings | board.white_kings);
-        // TODO: jumpers
         let movers = match color {
-            Color::White => self.get_white_movers(board, not_occupied),
-            Color::Red => self.get_red_movers(board, not_occupied),
+            Color::White => self.get_white_possible_movers(board, not_occupied),
+            Color::Red => self.get_red_possible_movers(board, not_occupied),
         };
         movers
     }
 }
 
 impl BritishRules {
-    fn get_white_movers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
+    fn get_white_possible_movers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
         let jumpers = self.get_white_jumpers(board, not_occupied);
         if jumpers != 0 {
             return jumpers
         }
+        return self.get_white_movers(board, not_occupied)
+    }
+
+    fn get_red_possible_movers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
+        let jumpers = self.get_red_jumpers(board, not_occupied);
+        if jumpers != 0 {
+            return jumpers
+        }
+        return self.get_red_movers(board, not_occupied)
+    }
+
+    fn get_white_movers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
         let pieces = board.white_pawns | board.white_kings;
         let movers = (not_occupied << 4) & pieces;
         let movers_3 = (not_occupied & MASK_3_UP) << 3 & pieces;
@@ -50,10 +61,6 @@ impl BritishRules {
     }
 
     fn get_red_movers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
-        let jumpers = self.get_red_jumpers(board, not_occupied);
-        if jumpers != 0 {
-            return jumpers
-        }
         let pieces = board.red_pawns | board.red_kings;
         let movers = (not_occupied >> 4) & pieces;
         let movers_3 = (not_occupied & MASK_3_DOWN) >> 3 & pieces;
