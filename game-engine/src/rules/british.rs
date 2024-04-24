@@ -201,4 +201,60 @@ mod tests {
         let movers = rules.get_possible_movers(&board, Color::White);
         assert_eq!(movers, 0b0000_0000_0000_0010_0000_0000_0000_0000);
     }
+
+    #[test]
+    fn test_white_capture_enforced() {
+        let board = BitBoard {
+            white_pawns: 0b0000_1111_0000_0010_0000_0000_0000_0000,
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_0000_0000_0100_0000_0000_0000,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+        };
+
+        let rules = BritishRules::new();
+        let movers = rules.get_possible_movers(&board, Color::White);
+        assert_eq!(movers, 0b0000_0000_0000_0010_0000_0000_0000_0000);
+    }
+
+    #[test]
+    fn test_white_without_capture() {
+        let board = BitBoard {
+            white_pawns: 0b0000_1111_0000_0010_0000_0000_0000_0000,
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_0000_0000_1000_0000_0000_0000,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+        };
+
+        let rules = BritishRules::new();
+        let movers = rules.get_possible_movers(&board, Color::White);
+        assert_eq!(movers, 0b0000_1111_0000_0010_0000_0000_0000_0000);
+    }
+
+    #[test]
+    fn test_red_capture_enforced() {
+        let board = BitBoard {
+            white_pawns:   0b0000_0000_0000_0010_0000_0000_0000_0000,
+            white_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:     0b0000_0000_0000_0000_0100_0000_1111_0000,
+            red_kings:     0b0000_0000_0000_0000_0000_0000_0000_0000,
+        };
+
+        let rules = BritishRules::new();
+        let movers = rules.get_possible_movers(&board, Color::Red);
+        assert_eq!(movers, 0b0000_0000_0000_0000_0100_0000_0000_0000);
+    }
+
+    #[test]
+    fn test_red_without_capture() {
+        let board = BitBoard {
+            white_pawns:   0b0000_0000_0000_0001_0000_0000_0000_0000,
+            white_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:     0b0000_0000_0000_0000_0100_0000_1111_0000,
+            red_kings:     0b0000_0000_0000_0000_0000_0000_0000_0000,
+        };
+
+        let rules = BritishRules::new();
+        let movers = rules.get_possible_movers(&board, Color::Red);
+        assert_eq!(movers, 0b0000_0000_0000_0000_0100_0000_1111_0000);
+    }
 }
