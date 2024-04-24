@@ -31,6 +31,10 @@ impl Rules for BritishRules {
 
 impl BritishRules {
     fn get_white_movers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
+        let jumpers = self.get_white_jumpers(board, not_occupied);
+        if jumpers != 0 {
+            return jumpers
+        }
         let pieces = board.white_pawns | board.white_kings;
         let movers = (not_occupied << 4) & pieces;
         let movers_3 = (not_occupied & MASK_3_UP) << 3 & pieces;
@@ -46,6 +50,10 @@ impl BritishRules {
     }
 
     fn get_red_movers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
+        let jumpers = self.get_red_jumpers(board, not_occupied);
+        if jumpers != 0 {
+            return jumpers
+        }
         let pieces = board.red_pawns | board.red_kings;
         let movers = (not_occupied >> 4) & pieces;
         let movers_3 = (not_occupied & MASK_3_DOWN) >> 3 & pieces;
@@ -58,6 +66,64 @@ impl BritishRules {
             movers = movers | kmovers | kmovers_3 | kmovers_5;
         }
         movers
+    }
+
+    fn get_white_jumpers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
+        let mut jumpers = 0;
+        let pieces = board.white_pawns | board.white_kings;
+        let opponent = board.red_pawns | board.red_kings;
+
+        let targets = (not_occupied << 4) & opponent;
+        if targets != 0 {
+            jumpers |= (((targets & MASK_3_UP) << 3) | ((targets & MASK_5_UP) << 5)) & pieces;
+        }
+
+        let targets = (((not_occupied & MASK_3_UP) << 3) | ((not_occupied & MASK_5_UP) << 5)) & opponent;
+        if targets != 0 {
+            jumpers |= (targets << 4) & pieces;
+        }
+
+        if board.white_kings != 0 {
+            let targets = (not_occupied >> 4) & opponent;
+            if targets != 0 {
+                jumpers |= (((targets & MASK_3_DOWN) >> 3) | ((targets & MASK_5_DOWN) >> 5)) & board.white_kings;
+            }
+
+            let targets = (((not_occupied & MASK_3_DOWN) >> 3) | ((not_occupied & MASK_5_DOWN) >> 5)) & opponent;
+            if targets != 0 {
+                jumpers |= (targets << 4) & board.white_kings;
+            }
+        }
+        jumpers
+    }
+
+    fn get_red_jumpers(&self, board: &BitBoard, not_occupied: u32) -> u32 {
+        let mut jumpers = 0;
+        let pieces = board.red_pawns | board.red_kings;
+        let opponent = board.white_pawns | board.white_kings;
+
+        let targets = (not_occupied << 4) & opponent;
+        if targets != 0 {
+            jumpers |= (((targets & MASK_3_DOWN) >> 3) | ((targets & MASK_5_DOWN) >> 5)) & pieces;
+        }
+
+        let targets = (((not_occupied & MASK_3_DOWN) >> 3) | ((not_occupied & MASK_5_DOWN) >> 5)) & opponent;
+        if targets != 0 {
+            jumpers |= (targets << 4) & pieces;
+        }
+
+        if board.red_kings != 0 {
+            let targets = (not_occupied >> 4) & opponent;
+            if targets != 0 {
+                jumpers |= (((targets & MASK_3_UP) << 3) | ((targets & MASK_5_UP) << 5)) & board.red_kings;
+            }
+
+            let targets = (((not_occupied & MASK_3_UP) << 3) | ((not_occupied & MASK_5_UP) << 5)) & opponent;
+            if targets != 0 {
+                jumpers |= (targets << 4) & board.red_kings;
+            }
+        }
+        jumpers
     }
 }
 
