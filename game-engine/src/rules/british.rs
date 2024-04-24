@@ -134,6 +134,13 @@ impl BritishRules {
     }
 
     // mover should have only one bit set
+    fn get_moves(&self, board: &BitBoard, mover: u32, color: Color) -> Vec<u32> {
+        match color {
+            Color::White => self.get_white_moves(board, mover),
+            Color::Red => self.get_red_moves(board, mover),
+        }
+    }
+
     fn get_white_moves(&self, board: &BitBoard, mover: u32) -> Vec<u32> {
         let not_occupied: u32 = !(board.white_pawns | board.red_pawns | board.red_kings | board.white_kings);
     
@@ -150,12 +157,40 @@ impl BritishRules {
 
         if (board.white_kings & mover) != 0 {
             if (not_occupied >> 4) & mover != 0 {
-                moves.push(mover | (mover >> 4));
+                moves.push(mover | (mover << 4));
             }
             if (not_occupied & MASK_3_DOWN) >> 3 & mover != 0 {
-                moves.push(mover | (mover >> 3));
+                moves.push(mover | (mover << 3));
             }
             if (not_occupied & MASK_5_DOWN) >> 5 & mover != 0 {
+                moves.push(mover | (mover << 5));
+            }
+        }
+
+        return moves
+    }
+
+    fn get_red_moves(&self, board: &BitBoard, mover: u32) -> Vec<u32> {
+        let not_occupied: u32 = !(board.white_pawns | board.red_pawns | board.red_kings | board.white_kings);
+        let mut moves = Vec::new();
+        if (not_occupied >> 4) & mover != 0 {
+            moves.push(mover | (mover << 4));
+        }
+        if (not_occupied & MASK_3_DOWN) >> 3 & mover != 0 {
+            moves.push(mover | (mover << 3));
+        }
+        if (not_occupied & MASK_5_DOWN) >> 5 & mover != 0 {
+            moves.push(mover | (mover << 5));
+        }
+
+        if (board.red_kings & mover) != 0 {
+            if (not_occupied << 4) & mover != 0 {
+                moves.push(mover | (mover >> 4));
+            }
+            if (not_occupied & MASK_3_DOWN) << 3 & mover != 0 {
+                moves.push(mover | (mover >> 3));
+            }
+            if (not_occupied & MASK_5_DOWN) << 5 & mover != 0 {
                 moves.push(mover | (mover >> 5));
             }
         }
