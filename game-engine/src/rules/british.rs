@@ -482,4 +482,42 @@ mod tests {
 
         assert_eq!(moves, expected_moves);
     }
+
+    #[test]
+    fn test_white_jump_single_jump() {
+        let board = BitBoard {
+            white_pawns: 0b0000_0000_0000_0000_0100_0000_0000_0000,
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_0000_0000_0000_0010_0000_0000,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+        };
+
+        let rules = BritishRules::new();
+        let jumps = rules.get_white_jumps(&board, board.white_pawns, board.white_pawns, 0);
+        assert_eq!(jumps.len(), 1);
+        let expected_jumps = vec![
+                        0b0000_0000_0000_0000_0100_0010_0010_0000,
+        ];
+        assert_eq!(jumps, expected_jumps);
+    }
+
+    #[test]
+    fn test_white_jump_multi_jump() {
+        let board = BitBoard {
+            white_pawns: 0b0000_0000_0000_0000_0100_0000_0000_0000,
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_0000_0000_0000_0110_0000_0000,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,
+        };
+
+        let rules = BritishRules::new();
+        let mut jumps = rules.get_white_jumps(&board, board.white_pawns, board.white_pawns, 0);
+        jumps.sort();
+        assert_eq!(jumps.len(), 2);
+        let expected_jumps = vec![
+                        0b0000_0000_0000_0000_0100_0010_0010_0000,
+                        0b0000_0000_0000_0000_0100_0100_1000_0000,
+        ];
+        assert_eq!(jumps, expected_jumps);
+    }
 }
