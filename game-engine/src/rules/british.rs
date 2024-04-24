@@ -200,6 +200,13 @@ impl BritishRules {
         return moves
     }
 
+    fn get_jumps(&self, board: &BitBoard, mover: u32, color: Color) -> Vec<u32> {
+        match color {
+            Color::White => self.get_white_jumps(board, mover),
+            Color::Red => self.get_red_jumps(board, mover),
+        }
+    }
+
     fn get_white_jumps(&self, board: &BitBoard, start: u32) -> Vec<u32> {
         let mut result = Vec::new();
         let mut queue: VecDeque<Captures> = VecDeque::new();
@@ -280,6 +287,98 @@ impl BritishRules {
                     queue.push_back(Captures {
                         captures: captures | (mover << 4), 
                         mover: mover << 9
+                    });
+                }
+            }
+
+            if !jump_found && captures != 0 {
+                result.push(captures | start | mover);
+            }
+        }
+
+        result
+    }
+
+    fn get_red_jumps(&self, board: &BitBoard, start: u32) -> Vec<u32> {
+        let mut result = Vec::new();
+        let mut queue: VecDeque<Captures> = VecDeque::new();
+        queue.push_back(Captures{mover: start, captures: 0});
+
+        while !queue.is_empty() {
+            let Some(curr) = queue.pop_front() else {
+                break;
+            };
+            let captures = curr.captures;
+            let mover = curr.mover;
+            let opponent = (board.white_pawns | board.white_kings) ^ captures;
+            let not_occupied: u32 = start | captures | !(board.white_pawns | board.red_pawns | board.red_kings | board.white_kings);
+            let mut jump_found = false;
+
+            let targets = (not_occupied >> 4) & opponent;
+            if targets != 0 && ((targets & MASK_3_DOWN) >> 3) & mover != 0 {
+                jump_found = true;
+                queue.push_back(Captures {
+                        captures: captures | (mover << 3), 
+                        mover: mover << 7
+                    });
+            }
+            if targets != 0 && ((targets & MASK_5_DOWN) >> 5) & mover != 0 {
+                jump_found = true;
+                queue.push_back(Captures {
+                        captures: captures | (mover << 5), 
+                        mover: mover << 9
+                    });
+            }
+
+            let targets = ((not_occupied & MASK_3_DOWN) >> 3) & opponent;
+            if targets != 0 && (targets >> 4) & mover != 0 {
+                jump_found = true;
+                queue.push_back(Captures {
+                        captures: captures | (mover << 4), 
+                        mover: mover << 7
+                    });
+            }
+
+            let targets = ((not_occupied & MASK_5_DOWN) >> 5) & opponent;
+            if targets != 0 && (targets >> 4) & mover != 0 {
+                jump_found = true;
+                queue.push_back(Captures {
+                        captures: captures | (mover << 4), 
+                        mover: mover << 9
+                    });
+            }
+
+            if (board.red_kings & start) != 0 {
+                let targets = (not_occupied << 4) & opponent;
+                if targets != 0 && ((targets & MASK_3_UP) << 3) & mover != 0 {
+                    jump_found = true;
+                    queue.push_back(Captures {
+                        captures: captures | (mover >> 3), 
+                        mover: mover >> 7
+                    });
+                }
+                if targets != 0 && ((targets & MASK_5_UP) << 5) & mover != 0 {
+                    jump_found = true;
+                    queue.push_back(Captures {
+                        captures: captures | (mover >> 5), 
+                        mover: mover >> 9
+                    });
+                }
+                let targets = ((not_occupied & MASK_3_UP) << 3) & opponent;
+                if targets != 0 && (targets << 4) & mover != 0 {
+                    jump_found = true;
+                    queue.push_back(Captures {
+                        captures: captures | (mover >> 4), 
+                        mover: mover >> 7
+                    });
+                }
+
+                let targets = ((not_occupied & MASK_5_UP) << 5) & opponent;
+                if targets != 0 && (targets << 4) & mover != 0 {
+                    jump_found = true;
+                    queue.push_back(Captures {
+                        captures: captures | (mover >> 4), 
+                        mover: mover >> 9
                     });
                 }
             }
@@ -530,7 +629,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let jumps = rules.get_white_jumps(&board, board.white_pawns);
+        let jumps = rules.get_jumps(&board, board.white_pawns, Color::White);
         assert_eq!(jumps.len(), 1);
         let expected_jumps = vec![
                         0b0000_0000_0000_0000_0100_0010_0010_0000,
@@ -548,7 +647,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let mut jumps = rules.get_white_jumps(&board, board.white_pawns);
+        let mut jumps = rules.get_jumps(&board, board.white_pawns, Color::White);
         jumps.sort();
         assert_eq!(jumps.len(), 2);
         let expected_jumps = vec![
