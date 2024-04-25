@@ -1,3 +1,5 @@
+use crate::Color;
+
 #[derive(Debug)]
 pub struct BitBoard {
     pub white_pawns: u32,
@@ -26,4 +28,28 @@ pub fn generate_bit_board(string_board: String) -> Result<BitBoard, String> {
             }
         }
         Ok(BitBoard {white_pawns, white_kings, red_pawns, red_kings})
+}
+
+impl BitBoard {
+    fn apply_move(&self, mov: u32, color: Color) -> BitBoard {
+        let not_occupied: u32 = !(self.white_pawns | self.red_pawns | self.red_kings | self.white_kings);
+        BitBoard { 
+            white_pawns: match color {
+                Color::White => (self.white_pawns ^ mov) | (not_occupied & mov),
+                Color::Red => self.white_pawns ^ mov,
+            },
+            white_kings: match color {
+                Color::White => (self.white_kings ^ mov) | (not_occupied & mov),
+                Color::Red => self.white_kings ^ mov,
+            },
+            red_pawns: match color {
+                Color::White => self.red_pawns ^ mov,
+                Color::Red => (self.red_pawns ^ mov) | (not_occupied & mov),
+            },
+            red_kings: match color {
+                Color::White => self.red_kings ^ mov,
+                Color::Red => (self.red_kings ^ mov) | (not_occupied & mov),
+            },
+        }
+    }
 }
