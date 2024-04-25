@@ -1,4 +1,4 @@
-use crate::board::BitBoard;
+use crate::{board::BitBoard, rules::Rules};
 
 mod random_engine;
 
@@ -19,7 +19,7 @@ pub struct Move {
 
 pub trait Engine {
     fn get_name(&self) -> String;
-    fn get_move(&mut self, board: &BitBoard) -> Move;
+    fn get_move(&mut self, board: &BitBoard, rules: &Box<dyn Rules>) -> Move;
 }
 
 pub enum EngineType {

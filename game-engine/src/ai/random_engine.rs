@@ -1,4 +1,4 @@
-use crate::{ai::Engine, board::BitBoard};
+use crate::{ai::Engine, board::BitBoard, rules::Rules};
 
 use super::{Move, Pos};
 
@@ -16,7 +16,7 @@ impl Engine for RandomEngine {
         String::from("Random Engine")
     }
 
-    fn get_move(&mut self, _board: &BitBoard) -> Move {
+    fn get_move(&mut self, _board: &BitBoard, _rules: &Box<dyn Rules>) -> Move {
         Move {
             start: Pos { x: 0, y: 0 },
             end: Pos { x: 0, y: 0 },

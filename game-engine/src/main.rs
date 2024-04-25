@@ -7,6 +7,7 @@ mod ai;
 mod rules;
 use crate::ai::{get_engine, EngineType};
 use crate::rules::{get_rules, RuleSet};
+use regex::Regex;
 
 #[tokio::main]
 async fn main() {
@@ -18,13 +19,24 @@ async fn main() {
     println!("{:032b}", bitboard.white_pawns);
     println!("{:032b}", bitboard.red_pawns);
     let mut engine = get_engine(EngineType::Random);
-    println!("{}", engine.get_name());
-    println!("{:?}", engine.get_move(&bitboard));
     let rules = get_rules(RuleSet::British);
+    println!("{}", engine.get_name());
+    println!("{:?}", engine.get_move(&bitboard, &rules));
 
     println!("rules: {:?}", rules.get_definition());
     println!("white: {:032b}", rules.get_possible_movers(&bitboard, Color::White));
     println!("red: {:032b}", rules.get_possible_movers(&bitboard, Color::Red));
+
+
+
+    let moves = vec!["10x13", "10-1", "10-1-15-4", "2x5x4", "12x32x30", "12x34x56", "10xxx10", "x10x10"];
+
+    for mov in moves {
+        match move_to_bitboard(String::from(mov)) {
+            Ok(bitboard) => println!("{}, Bitboard representation: {:032b}", mov, bitboard),
+            Err(err) => println!("{}, Error: {:?}", mov, err),
+        }
+    }
 
     let rabbit_url = "amqp://guest:guest@localhost:5672";
     let mut cfg = deadpool_lapin::Config::default();
@@ -142,4 +154,58 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool) -> Result<(), Box<dyn std
 pub enum Color {
     White,
     Red,
+}
+
+#[derive(Debug)]
+enum ParseError {
+    InvalidFormat,
+    NumberOverflow,
+    InvalidDigit,
+}
+
+const BIT_MASK: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
+
+fn move_to_bitboard(move_string: String) -> Result<u32, ParseError> {
+    let move_regex = Regex::new(r"^(\d+(x|-))*\d+$").unwrap();
+
+    if !move_regex.is_match(move_string.as_str()) {
+        return Err(ParseError::InvalidFormat);
+    }
+
+    let mut current_num = 0;
+    let mut result: u32 = 0;
+
+    for c in move_string.chars() {
+        if c.is_digit(10) {
+            current_num *= 10;
+            current_num += c.to_digit(10).ok_or(ParseError::InvalidDigit)?;
+            if current_num > 32 {
+                return Err(ParseError::NumberOverflow);
+            }
+        } 
+        match c {
+            'x' => {
+                if current_num != 0 {
+                    result |= BIT_MASK >> (current_num - 1);
+                    current_num = 0;
+                }
+            },
+            '-' => {
+                if result != 0 {
+                    current_num = 0;
+                    continue;
+                }
+                if current_num != 0 {
+                    result |= BIT_MASK >> (current_num - 1);
+                    current_num = 0;
+                }
+            },
+            _ => {}
+        }
+    }
+
+    if current_num != 0 {
+        result |= BIT_MASK >> (current_num - 1);
+    }
+    Ok(result)
 }

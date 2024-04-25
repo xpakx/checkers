@@ -15,6 +15,7 @@ pub enum RuleSet {
 }
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct RuleDefiniton {
     flying_kings: bool,
     board_size: usize,
