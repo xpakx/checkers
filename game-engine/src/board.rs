@@ -1,4 +1,4 @@
-use crate::Color;
+use crate::{Color, BIT_MASK};
 
 #[derive(Debug)]
 pub struct BitBoard {
@@ -51,5 +51,37 @@ impl BitBoard {
                 Color::Red => (self.red_kings ^ mov) | (not_occupied & mov),
             },
         }
+    }
+
+    pub fn print(&self) {
+        let mut text = String::from("");
+        let mut num = 0;
+        for row in 1..=8 {
+            for column in 1..=8 {
+                if row % 2 != column % 2 {
+                    let white_pawn = (self.white_pawns & (BIT_MASK >> num)) != 0;
+                    let red_pawn = (self.red_pawns & (BIT_MASK >> num)) != 0;
+                    let white_king = (self.white_kings & (BIT_MASK >> num)) != 0;
+                    let red_king = (self.red_kings & (BIT_MASK >> num)) != 0;
+                    if white_pawn {
+                        text += " ⛀ ";
+                    } else if red_pawn {
+                        text += " ⛂ ";
+                    } else if white_king {
+                        text += " ⛁ ";
+                    } else if red_king {
+                        text += " ⛃ ";
+                    } else {
+                        text += "   ";
+                    }
+                    num += 1;
+                } else {
+                    text += "   ";
+                }
+            }
+            text += "\n";
+
+        }
+        println!("{}", text);
     }
 }
