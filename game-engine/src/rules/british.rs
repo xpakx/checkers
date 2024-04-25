@@ -2,7 +2,7 @@ use std::collections::VecDeque;
 
 use crate::{board::BitBoard, rules::Rules, Color};
 
-use super::RuleDefiniton;
+use super::{MoveVerification, RuleDefiniton};
 
 // no flying kings, 8x8, pawns cannot move backwards, 
 // any capture sequence can be chosen, but captures are forced, 
@@ -64,22 +64,25 @@ impl Rules for BritishRules {
         }
     }
 
-    fn verify_move(&self, board: &BitBoard, mov: u32, color: &Color) -> bool {
+    fn verify_move(&self, board: &BitBoard, mov: u32, color: &Color) -> MoveVerification {
         let jumps = self.get_jumps(board, mov, color);
-        let moves = self.get_moves(board, mov, color);
-        let is_valid_jump = jumps.iter().any(|&j| j == mov);
-        if is_valid_jump {
-            return true
+        let matched_jumps: Vec<&u32> = jumps.iter().filter(|&j| j & mov == mov).collect();
+        if matched_jumps.len() == 1 {
+            return MoveVerification::Ok(*matched_jumps[0])
+        } else if matched_jumps.len() > 1 {
+            return MoveVerification::Ambiguous
         }
         let any_jumpers = self.get_possible_jumpers(board, color) != 0;
         if any_jumpers {
-            return false
+            return MoveVerification::Illegal
         }
-        let is_valid_move = moves.iter().any(|&j| j == mov);
-        if is_valid_move {
-            return true
+        let moves = self.get_moves(board, mov, color);
+        let matched_moves: Vec<&u32> = moves.iter().filter(|&j| j & mov == mov).collect();
+        match matched_moves.len() {
+            1 => MoveVerification::Ok(*matched_moves[0]),
+            0 => MoveVerification::Illegal,
+            _ => MoveVerification::Ambiguous,
         }
-        false
     }
 }
 

@@ -8,11 +8,17 @@ pub trait Rules {
     fn get_moves(&self, board: &BitBoard, mover: u32, color: &Color) -> Vec<u32>;
     fn get_jumps(&self, board: &BitBoard, mover: u32, color: &Color) -> Vec<u32>;
     fn get_definition(&self) -> RuleDefiniton;
-    fn verify_move(&self, board: &BitBoard, mov: u32, color: &Color) -> bool;
+    fn verify_move(&self, board: &BitBoard, mov: u32, color: &Color) -> MoveVerification;
 }
 
 pub enum RuleSet {
     British,
+}
+
+pub enum MoveVerification {
+    Ok(u32),
+    Illegal,
+    Ambiguous,
 }
 
 #[derive(Debug)]
