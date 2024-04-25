@@ -32,7 +32,7 @@ async fn main() {
     let moves = vec!["10x13", "10-1", "10-1-15-4", "2x5x4", "12x32x30", "12x34x56", "10xxx10", "x10x10"];
     for mov in moves {
         match move_to_bitboard(String::from(mov)) {
-            Ok(bitboard) => println!("{}, Bitboard representation: {:032b}", mov, bitboard),
+            Ok(bitboard) => println!("{}, Bitboard representation: {:032b}", mov, bitboard.mov),
             Err(err) => println!("{}, Error: {:?}", mov, err),
         }
     }
@@ -164,8 +164,7 @@ enum ParseError {
 
 const BIT_MASK: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
 
-// FIXME: bitboard should not actually have intermidiate checker's positions but captured pieces
-fn move_to_bitboard(move_string: String) -> Result<u32, ParseError> {
+fn move_to_bitboard(move_string: String) -> Result<MoveBit, ParseError> {
     let move_regex = Regex::new(r"^(\d+(x|-))*\d+$").unwrap();
 
     if !move_regex.is_match(move_string.as_str()) {
@@ -173,7 +172,8 @@ fn move_to_bitboard(move_string: String) -> Result<u32, ParseError> {
     }
 
     let mut current_num = 0;
-    let mut result: u32 = 0;
+    let mut mov: u32 = 0;
+    let mut start_end: u32 = 0;
 
     for c in move_string.chars() {
         if c.is_digit(10) {
@@ -185,27 +185,34 @@ fn move_to_bitboard(move_string: String) -> Result<u32, ParseError> {
         } 
         match c {
             'x' => {
-                if current_num != 0 {
-                    result |= BIT_MASK >> (current_num - 1);
-                    current_num = 0;
-                }
-            },
-            '-' => {
-                if result != 0 {
+                if start_end == 0 {
+                    start_end = BIT_MASK >> (current_num - 1);
                     current_num = 0;
                     continue;
                 }
                 if current_num != 0 {
-                    result |= BIT_MASK >> (current_num - 1);
+                    mov |= BIT_MASK >> (current_num - 1);
                     current_num = 0;
                 }
+            },
+            '-' => {
+                if start_end == 0 {
+                    start_end = BIT_MASK >> (current_num - 1);
+                }
+                current_num = 0;
             },
             _ => {}
         }
     }
 
-    if current_num != 0 {
-        result |= BIT_MASK >> (current_num - 1);
-    }
-    Ok(result)
+    start_end |=  BIT_MASK >> (current_num - 1);
+    mov |= start_end;
+    Ok(MoveBit { start_end, mov })
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct MoveBit {
+    mov: u32,
+    start_end: u32,
 }
