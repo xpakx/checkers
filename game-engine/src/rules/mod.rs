@@ -1,4 +1,4 @@
-use crate::{board::BitBoard, Color};
+use crate::{board::BitBoard, Color, MoveBit};
 
 mod british;
 
@@ -8,7 +8,7 @@ pub trait Rules {
     fn get_moves(&self, board: &BitBoard, mover: u32, color: &Color) -> Vec<u32>;
     fn get_jumps(&self, board: &BitBoard, mover: u32, color: &Color) -> Vec<u32>;
     fn get_definition(&self) -> RuleDefiniton;
-    fn verify_move(&self, board: &BitBoard, mov: u32, color: &Color) -> MoveVerification;
+    fn verify_move(&self, board: &BitBoard, mov: MoveBit, color: &Color) -> MoveVerification;
 }
 
 pub enum RuleSet {
