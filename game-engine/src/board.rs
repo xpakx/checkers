@@ -30,25 +30,34 @@ pub fn generate_bit_board(string_board: String) -> Result<BitBoard, String> {
         Ok(BitBoard {white_pawns, white_kings, red_pawns, red_kings})
 }
 
+fn without_captures(pre: u32, mov: u32, empty: u32) -> u32 {
+    (pre ^ (pre & mov)) | (empty & mov)
+}
+
+fn without_moved(pre: u32, mov: u32) -> u32 {
+    pre ^ (pre & mov)
+}
+
 impl BitBoard {
+
     pub fn apply_move(&self, mov: u32, color: Color) -> BitBoard {
-        let not_occupied: u32 = !(self.white_pawns | self.red_pawns | self.red_kings | self.white_kings);
+        let empty: u32 = !(self.white_pawns | self.red_pawns | self.red_kings | self.white_kings);
         BitBoard { 
             white_pawns: match color {
-                Color::White => (self.white_pawns ^ mov) | (not_occupied & mov),
-                Color::Red => self.white_pawns ^ mov,
+                Color::White => without_captures(self.white_pawns, mov, empty),
+                Color::Red => without_moved(self.white_pawns, mov),
             },
             white_kings: match color {
-                Color::White => (self.white_kings ^ mov) | (not_occupied & mov),
-                Color::Red => self.white_kings ^ mov,
+                Color::White => without_captures(self.white_kings, mov, empty),
+                Color::Red => without_moved(self.white_kings, mov),
             },
             red_pawns: match color {
-                Color::White => self.red_pawns ^ mov,
-                Color::Red => (self.red_pawns ^ mov) | (not_occupied & mov),
+                Color::White => without_moved(self.red_pawns, mov),
+                Color::Red => without_captures(self.red_pawns, mov, empty),
             },
             red_kings: match color {
-                Color::White => self.red_kings ^ mov,
-                Color::Red => (self.red_kings ^ mov) | (not_occupied & mov),
+                Color::White => without_moved(self.red_kings, mov),
+                Color::Red => without_captures(self.red_kings, mov, empty),
             },
         }
     }

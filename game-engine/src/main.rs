@@ -6,7 +6,7 @@ mod board;
 mod ai;
 mod rules;
 use crate::ai::{get_engine, EngineType};
-use crate::rules::{get_rules, RuleSet};
+use crate::rules::{get_rules, RuleSet, MoveVerification};
 use regex::Regex;
 
 #[tokio::main]
@@ -24,9 +24,21 @@ async fn main() {
     println!("{}", engine.get_name());
     let mov = engine.get_move(&bitboard, &Color::White, &rules);
     println!("{:032b}", mov);
-    let new_bitboard = bitboard.apply_move(mov, Color::White);
-    new_bitboard.print();
-    println!("{:?}", new_bitboard);
+    let bitboard = bitboard.apply_move(mov, Color::White);
+    bitboard.print();
+    println!("{:?}", bitboard);
+    let mov = engine.get_move(&bitboard, &Color::Red, &rules);
+    let bitboard = bitboard.apply_move(mov, Color::Red);
+    bitboard.print();
+    println!("{:?}", bitboard);
+    let mov = engine.get_move(&bitboard, &Color::White, &rules);
+    let bitboard = bitboard.apply_move(mov, Color::White);
+    bitboard.print();
+    println!("{:?}", bitboard);
+    let mov = engine.get_move(&bitboard, &Color::Red, &rules);
+    let bitboard = bitboard.apply_move(mov, Color::Red);
+    bitboard.print();
+    println!("{:?}", bitboard);
 
     println!("rules: {:?}", rules.get_definition());
     println!("white: {:032b}", rules.get_possible_movers(&bitboard, &Color::White));
@@ -39,6 +51,17 @@ async fn main() {
             Err(err) => println!("{}, Error: {:?}", mov, err),
         }
     }
+    let board = "xxxxxxxxxxxx........oooooooooooo";
+    let bitboard = board::generate_bit_board(board.into());
+    let bitboard = bitboard.unwrap();
+    bitboard.print();
+    let mov = move_to_bitboard("10-15".into());
+    let mov = rules.verify_move(&bitboard, mov.unwrap(), &Color::White);
+    if let MoveVerification::Ok(mov) = mov {
+        let bitboard = bitboard.apply_move(mov, Color::White);
+        bitboard.print();
+    }
+
 
     let rabbit_url = "amqp://guest:guest@localhost:5672";
     let mut cfg = deadpool_lapin::Config::default();
