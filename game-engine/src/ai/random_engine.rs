@@ -1,13 +1,16 @@
-use crate::{ai::Engine, board::BitBoard, rules::Rules};
+use rand::{rngs::ThreadRng, thread_rng, Rng};
 
-use super::{Move, Pos};
+use crate::{ai::Engine, board::BitBoard, rules::Rules, Color, BIT_MASK};
 
 pub struct RandomEngine {
+    rng: ThreadRng,
 }
 
 impl RandomEngine {
     pub fn new() -> RandomEngine {
-        RandomEngine { }
+        RandomEngine {
+            rng: thread_rng(),
+        }
     }
 }
 
@@ -16,16 +19,33 @@ impl Engine for RandomEngine {
         String::from("Random Engine")
     }
 
-    fn get_move(&mut self, _board: &BitBoard, _rules: &Box<dyn Rules>) -> Move {
-        Move {
-            start: Pos { x: 0, y: 0 },
-            end: Pos { x: 0, y: 0 },
-            result: BitBoard {
-                red_pawns: 0,
-                red_kings: 0,
-                white_pawns: 0,
-                white_kings: 0,
-            },
+    fn get_move(&mut self, board: &BitBoard, rules: &Box<dyn Rules>) -> u32 {
+        let def = rules.get_definition();
+        let jumpers = rules.get_possible_jumpers(board, Color::White); // TODO
+        let movers = match !def.capture_forced || jumpers == 0 {
+            true => rules.get_possible_movers(board, Color::White),
+            false => 0,
+        };
+        
+        let mut moves = Vec::new();
+        for i in 1..=32 {
+            let mover = jumpers & (BIT_MASK >> i-1);
+            if mover > 0 {
+                let mut new_jumps = rules.get_jumps(board, mover, Color::White);
+                moves.append(&mut new_jumps);
+            }
+            let mover = movers & (BIT_MASK >> i-1);
+            if mover > 0 {
+                let mut new_moves = rules.get_moves(board, mover, Color::White);
+                moves.append(&mut new_moves);
+            }
         }
+
+        if moves.len() == 0 {
+            return 0;
+        }
+
+        let index = self.rng.gen_range(0..moves.len());
+        moves[index]
     }
 }

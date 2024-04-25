@@ -18,11 +18,11 @@ pub enum RuleSet {
 #[derive(Debug)]
 #[allow(dead_code)]
 pub struct RuleDefiniton {
-    flying_kings: bool,
-    board_size: usize,
-    backward_pawns: bool,
-    maximal_capture: bool,
-    capture_forced: bool,
+    pub flying_kings: bool,
+    pub board_size: usize,
+    pub backward_pawns: bool,
+    pub maximal_capture: bool,
+    pub capture_forced: bool,
 }
 
 pub fn get_rules(ruleset: RuleSet) -> Box<dyn Rules> {

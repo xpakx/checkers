@@ -19,7 +19,7 @@ pub struct Move {
 
 pub trait Engine {
     fn get_name(&self) -> String;
-    fn get_move(&mut self, board: &BitBoard, rules: &Box<dyn Rules>) -> Move;
+    fn get_move(&mut self, board: &BitBoard, rules: &Box<dyn Rules>) -> u32;
 }
 
 pub enum EngineType {

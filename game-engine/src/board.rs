@@ -31,7 +31,7 @@ pub fn generate_bit_board(string_board: String) -> Result<BitBoard, String> {
 }
 
 impl BitBoard {
-    fn apply_move(&self, mov: u32, color: Color) -> BitBoard {
+    pub fn apply_move(&self, mov: u32, color: Color) -> BitBoard {
         let not_occupied: u32 = !(self.white_pawns | self.red_pawns | self.red_kings | self.white_kings);
         BitBoard { 
             white_pawns: match color {

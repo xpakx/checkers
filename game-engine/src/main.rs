@@ -21,7 +21,9 @@ async fn main() {
     let mut engine = get_engine(EngineType::Random);
     let rules = get_rules(RuleSet::British);
     println!("{}", engine.get_name());
-    println!("{:?}", engine.get_move(&bitboard, &rules));
+    let mov = engine.get_move(&bitboard, &rules);
+    println!("{:032b}", mov);
+    println!("{:?}", bitboard.apply_move(mov, Color::White));
 
     println!("rules: {:?}", rules.get_definition());
     println!("white: {:032b}", rules.get_possible_movers(&bitboard, Color::White));
