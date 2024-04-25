@@ -3,12 +3,12 @@ use crate::{board::BitBoard, Color};
 mod british;
 
 pub trait Rules {
-    fn get_possible_movers(&self, board: &BitBoard, color: Color) -> u32;
-    fn get_possible_jumpers(&self, board: &BitBoard, color: Color) -> u32;
-    fn get_moves(&self, board: &BitBoard, mover: u32, color: Color) -> Vec<u32>;
-    fn get_jumps(&self, board: &BitBoard, mover: u32, color: Color) -> Vec<u32>;
+    fn get_possible_movers(&self, board: &BitBoard, color: &Color) -> u32;
+    fn get_possible_jumpers(&self, board: &BitBoard, color: &Color) -> u32;
+    fn get_moves(&self, board: &BitBoard, mover: u32, color: &Color) -> Vec<u32>;
+    fn get_jumps(&self, board: &BitBoard, mover: u32, color: &Color) -> Vec<u32>;
     fn get_definition(&self) -> RuleDefiniton;
-    fn verify_move(&self, board: &BitBoard, mov: u32, color: Color) -> bool;
+    fn verify_move(&self, board: &BitBoard, mov: u32, color: &Color) -> bool;
 }
 
 pub enum RuleSet {

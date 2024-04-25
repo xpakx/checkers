@@ -21,15 +21,13 @@ async fn main() {
     let mut engine = get_engine(EngineType::Random);
     let rules = get_rules(RuleSet::British);
     println!("{}", engine.get_name());
-    let mov = engine.get_move(&bitboard, &rules);
+    let mov = engine.get_move(&bitboard, &Color::White, &rules);
     println!("{:032b}", mov);
     println!("{:?}", bitboard.apply_move(mov, Color::White));
 
     println!("rules: {:?}", rules.get_definition());
-    println!("white: {:032b}", rules.get_possible_movers(&bitboard, Color::White));
-    println!("red: {:032b}", rules.get_possible_movers(&bitboard, Color::Red));
-
-
+    println!("white: {:032b}", rules.get_possible_movers(&bitboard, &Color::White));
+    println!("red: {:032b}", rules.get_possible_movers(&bitboard, &Color::Red));
 
     let moves = vec!["10x13", "10-1", "10-1-15-4", "2x5x4", "12x32x30", "12x34x56", "10xxx10", "x10x10"];
     for mov in moves {
@@ -166,6 +164,7 @@ enum ParseError {
 
 const BIT_MASK: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
 
+// FIXME: bitboard should not actually have intermidiate checker's positions but captured pieces
 fn move_to_bitboard(move_string: String) -> Result<u32, ParseError> {
     let move_regex = Regex::new(r"^(\d+(x|-))*\d+$").unwrap();
 

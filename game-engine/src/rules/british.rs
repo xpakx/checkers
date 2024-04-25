@@ -32,7 +32,7 @@ impl Rules for BritishRules {
         }
     }
 
-    fn get_possible_movers(&self, board: &BitBoard, color: Color) -> u32 {
+    fn get_possible_movers(&self, board: &BitBoard, color: &Color) -> u32 {
         let not_occupied: u32 = !(board.white_pawns | board.red_pawns | board.red_kings | board.white_kings);
         match color {
             Color::White => self.get_white_movers(board, not_occupied),
@@ -40,7 +40,7 @@ impl Rules for BritishRules {
         }
     }
 
-    fn get_possible_jumpers(&self, board: &BitBoard, color: Color) -> u32 {
+    fn get_possible_jumpers(&self, board: &BitBoard, color: &Color) -> u32 {
         let not_occupied: u32 = !(board.white_pawns | board.red_pawns | board.red_kings | board.white_kings);
         match color {
             Color::White => self.get_white_jumpers(board, not_occupied),
@@ -49,7 +49,7 @@ impl Rules for BritishRules {
     }
 
     // mover should have only one bit set
-    fn get_moves(&self, board: &BitBoard, mover: u32, color: Color) -> Vec<u32> {
+    fn get_moves(&self, board: &BitBoard, mover: u32, color: &Color) -> Vec<u32> {
         match color {
             Color::White => self.get_white_moves(board, mover),
             Color::Red => self.get_red_moves(board, mover),
@@ -57,16 +57,16 @@ impl Rules for BritishRules {
     }
 
     // mover should have only one bit set
-    fn get_jumps(&self, board: &BitBoard, mover: u32, color: Color) -> Vec<u32> {
+    fn get_jumps(&self, board: &BitBoard, mover: u32, color: &Color) -> Vec<u32> {
         match color {
             Color::White => self.get_white_jumps(board, mover),
             Color::Red => self.get_red_jumps(board, mover),
         }
     }
 
-    fn verify_move(&self, board: &BitBoard, mov: u32, color: Color) -> bool {
-        let jumps = self.get_jumps(board, mov, color.clone());
-        let moves = self.get_moves(board, mov, color.clone());
+    fn verify_move(&self, board: &BitBoard, mov: u32, color: &Color) -> bool {
+        let jumps = self.get_jumps(board, mov, color);
+        let moves = self.get_moves(board, mov, color);
         let is_valid_jump = jumps.iter().any(|&j| j == mov);
         if is_valid_jump {
             return true
@@ -434,7 +434,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_movers(&board, Color::White);
+        let movers = rules.get_possible_movers(&board, &Color::White);
         assert_eq!(movers, 0b0000_0000_0000_0000_0000_0000_0000_0000);
     }
 
@@ -448,7 +448,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_movers(&board, Color::Red);
+        let movers = rules.get_possible_movers(&board, &Color::Red);
         assert_eq!(movers, 0b0000_0000_0000_0000_0000_0000_0000_0000);
     }
 
@@ -462,7 +462,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_movers(&board, Color::Red);
+        let movers = rules.get_possible_movers(&board, &Color::Red);
         assert_eq!(movers, 0b0000_0000_0000_0000_0000_1111_0000_0000);
     }
 
@@ -476,7 +476,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_movers(&board, Color::White);
+        let movers = rules.get_possible_movers(&board, &Color::White);
         assert_eq!(movers, 0b0000_0000_1111_0000_0000_0000_0000_0000);
     }
 
@@ -490,7 +490,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_movers(&board, Color::White);
+        let movers = rules.get_possible_movers(&board, &Color::White);
         assert_eq!(movers, 0b0000_0000_0000_0010_0000_0000_0000_0000);
     }
 
@@ -504,7 +504,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_jumpers(&board, Color::White);
+        let movers = rules.get_possible_jumpers(&board, &Color::White);
         assert_eq!(movers, 0b0000_0000_0000_0010_0000_0000_0000_0000);
     }
 
@@ -518,7 +518,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_jumpers(&board, Color::White);
+        let movers = rules.get_possible_jumpers(&board, &Color::White);
         assert_eq!(movers, 0b0000_0000_0000_0000_0000_0000_0000_0000);
     }
 
@@ -532,7 +532,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_jumpers(&board, Color::Red);
+        let movers = rules.get_possible_jumpers(&board, &Color::Red);
         assert_eq!(movers, 0b0000_0000_0000_0000_0100_0000_0000_0000);
     }
 
@@ -546,7 +546,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let movers = rules.get_possible_jumpers(&board, Color::Red);
+        let movers = rules.get_possible_jumpers(&board, &Color::Red);
         assert_eq!(movers, 0b0000_0000_0000_0000_0000_0000_0000_0000);
     }
 
@@ -566,7 +566,7 @@ mod tests {
 
         let mover =        0b0000_0000_0000_0001_0000_0000_0000_0000;
         let rules = BritishRules::new();
-        let mut moves = rules.get_moves(&board, mover, Color::White);
+        let mut moves = rules.get_moves(&board, mover, &Color::White);
         moves.sort();
 
         assert_eq!(moves, expected_moves);
@@ -590,7 +590,7 @@ mod tests {
 
         let mover =        0b0000_0000_0000_0001_0000_0000_0000_0000;
         let rules = BritishRules::new();
-        let mut moves = rules.get_moves(&board, mover, Color::White);
+        let mut moves = rules.get_moves(&board, mover, &Color::White);
         moves.sort();
 
         assert_eq!(moves, expected_moves);
@@ -612,7 +612,7 @@ mod tests {
 
         let mover =        0b0000_0000_0000_0001_0000_0000_0000_0000;
         let rules = BritishRules::new();
-        let mut moves = rules.get_moves(&board, mover, Color::Red);
+        let mut moves = rules.get_moves(&board, mover, &Color::Red);
         moves.sort();
 
         assert_eq!(moves, expected_moves);
@@ -635,7 +635,7 @@ mod tests {
 
         let mover =        0b0000_0000_0000_0001_0000_0000_0000_0000;
         let rules = BritishRules::new();
-        let mut moves = rules.get_moves(&board, mover, Color::Red);
+        let mut moves = rules.get_moves(&board, mover, &Color::Red);
         moves.sort();
 
         assert_eq!(moves, expected_moves);
@@ -651,7 +651,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let jumps = rules.get_jumps(&board, board.white_pawns, Color::White);
+        let jumps = rules.get_jumps(&board, board.white_pawns, &Color::White);
         assert_eq!(jumps.len(), 1);
         let expected_jumps = vec![
                         0b0000_0000_0000_0000_0100_0010_0010_0000,
@@ -669,7 +669,7 @@ mod tests {
         };
 
         let rules = BritishRules::new();
-        let mut jumps = rules.get_jumps(&board, board.white_pawns, Color::White);
+        let mut jumps = rules.get_jumps(&board, board.white_pawns, &Color::White);
         jumps.sort();
         assert_eq!(jumps.len(), 2);
         let expected_jumps = vec![
