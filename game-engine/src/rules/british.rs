@@ -63,6 +63,24 @@ impl Rules for BritishRules {
             Color::Red => self.get_red_jumps(board, mover),
         }
     }
+
+    fn verify_move(&self, board: &BitBoard, mov: u32, color: Color) -> bool {
+        let jumps = self.get_jumps(board, mov, color.clone());
+        let moves = self.get_moves(board, mov, color.clone());
+        let is_valid_jump = jumps.iter().any(|&j| j == mov);
+        if is_valid_jump {
+            return true
+        }
+        let any_jumpers = self.get_possible_jumpers(board, color) != 0;
+        if any_jumpers {
+            return false
+        }
+        let is_valid_move = moves.iter().any(|&j| j == mov);
+        if is_valid_move {
+            return true
+        }
+        false
+    }
 }
 
 impl BritishRules {

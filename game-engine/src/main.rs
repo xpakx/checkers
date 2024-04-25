@@ -30,7 +30,6 @@ async fn main() {
 
 
     let moves = vec!["10x13", "10-1", "10-1-15-4", "2x5x4", "12x32x30", "12x34x56", "10xxx10", "x10x10"];
-
     for mov in moves {
         match move_to_bitboard(String::from(mov)) {
             Ok(bitboard) => println!("{}, Bitboard representation: {:032b}", mov, bitboard),
@@ -150,7 +149,7 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool) -> Result<(), Box<dyn std
     Ok(())
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Color {
     White,
     Red,
