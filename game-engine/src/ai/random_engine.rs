@@ -21,7 +21,7 @@ impl Engine for RandomEngine {
 
     fn get_move(&mut self, board: &BitBoard, color: &Color, rules: &Box<dyn Rules>) -> u32 {
         let def = rules.get_definition();
-        let jumpers = rules.get_possible_jumpers(board, color); // TODO
+        let jumpers = rules.get_possible_jumpers(board, color);
         let movers = match !def.capture_forced || jumpers == 0 {
             true => rules.get_possible_movers(board, color),
             false => 0,

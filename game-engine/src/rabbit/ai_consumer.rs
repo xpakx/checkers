@@ -2,7 +2,7 @@ use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{ai::get_engine, board::generate_bit_board, rabbit::DESTINATION_EXCHANGE, rules::get_rules};
+use crate::{ai::get_engine, board::generate_bit_board, rabbit::DESTINATION_EXCHANGE, rules::get_rules, Color};
 
 use super::move_consumer::EngineEvent;
 
@@ -52,7 +52,7 @@ pub fn set_ai_delegate(consumer: lapin::Consumer, channel: Channel) {
                 delivery
                     .ack(BasicAckOptions::default())
                     .await
-                    .expect("Failed to acknowledge message"); // TODO
+                    .expect("Failed to acknowledge message");
             }
         }
     }
@@ -66,6 +66,7 @@ struct AiEvent {
     game_state: String,
     ruleset: RuleSet,
     ai_type: AIType,
+    color: Color,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -80,14 +81,15 @@ enum AIType {
 
 // TODO
 fn process_ai_event(message: AiEvent) -> EngineEvent {
-    let board = generate_bit_board(message.game_state);
+    let board = generate_bit_board(message.game_state).unwrap(); // TODO
     let rules = get_rules(match message.ruleset {
         RuleSet::British => crate::rules::RuleSet::British,
     });
     let mut engine = get_engine(match message.ai_type {
         AIType::Random => crate::ai::EngineType::Random,
     });
-    let _mov = engine.get_move(&board.unwrap(), &crate::Color::Red, &rules);
+    let mov = engine.get_move(&board, &message.color, &rules);
+    let _board = board.apply_move(mov, message.color);
 
     EngineEvent {game_id: message.game_id, ..Default::default()}
 }

@@ -1,7 +1,7 @@
 use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
 use serde::{Deserialize, Serialize};
 
-use crate::{board::{generate_bit_board, move_to_bitboard}, rabbit::DESTINATION_EXCHANGE, rules::{get_rules, MoveVerification}};
+use crate::{board::{generate_bit_board, move_to_bitboard}, rabbit::DESTINATION_EXCHANGE, rules::{get_rules, MoveVerification}, Color};
 
 pub fn set_move_delegate(consumer: lapin::Consumer, channel: Channel) {
     consumer.set_delegate({
@@ -49,7 +49,7 @@ pub fn set_move_delegate(consumer: lapin::Consumer, channel: Channel) {
                 delivery
                     .ack(BasicAckOptions::default())
                     .await
-                    .expect("Failed to acknowledge message"); // TODO
+                    .expect("Failed to acknowledge message");
             }
         }
     }
@@ -64,6 +64,7 @@ struct MoveEvent {
     #[serde(rename = "move")]
     mov: String,
     ruleset: RuleSet,
+    color: Color,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -111,7 +112,7 @@ fn process_move(message: MoveEvent) -> EngineEvent {
     });
 
     let _legality = match (mov, board) {
-        (Ok(mov), Ok(board)) => rules.verify_move(&board, mov, &crate::Color::Red),
+        (Ok(mov), Ok(board)) => rules.verify_move(&board, mov, &message.color),
         (_, _) => MoveVerification::Illegal, 
     };
     EngineEvent {game_id: message.game_id, ..Default::default()}
