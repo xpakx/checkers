@@ -105,15 +105,24 @@ impl Default for EngineEvent {
 
 // TODO
 fn process_move(message: MoveEvent) -> EngineEvent {
-    let mov = move_to_bitboard(message.mov);
-    let board = generate_bit_board(message.game_state);
+    let mov = move_to_bitboard(message.mov.clone());
+    let board = generate_bit_board(message.game_state.clone());
     let rules = get_rules(match message.ruleset {
         RuleSet::British => crate::rules::RuleSet::British,
     });
 
-    let _legality = match (mov, board) {
-        (Ok(mov), Ok(board)) => rules.verify_move(&board, mov, &message.color),
+    let legality = match (mov, &board) {
+        (Ok(mov), Ok(board)) => rules.verify_move(board, mov, &message.color),
         (_, _) => MoveVerification::Illegal, 
     };
-    EngineEvent {game_id: message.game_id, ..Default::default()}
+    let state = match (legality, &board) {
+        (MoveVerification::Ok(mov), Ok(board)) => board.apply_move(mov, message.color).to_string(),
+        _ => message.game_state,
+    };
+    EngineEvent {
+        game_id: message.game_id,
+        new_state: state,
+        mov: message.mov,
+        ..Default::default()
+    }
 }

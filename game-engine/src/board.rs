@@ -95,6 +95,28 @@ impl BitBoard {
         }
         println!("{}", text);
     }
+
+    pub fn to_string(&self) -> String {
+        let mut result = String::new();
+        for i in 1..=32 {
+            let white_pawns = self.white_pawns & (BIT_MASK << (i-1)) != 0;
+            let white_kings = self.white_kings & (BIT_MASK << (i-1)) != 0;
+            let red_pawns = self.red_pawns & (BIT_MASK << (i-1)) != 0;
+            let red_kings = self.red_kings & (BIT_MASK << (i-1)) != 0;
+            if white_pawns {
+                result += "x";
+            } else if white_kings {
+                result += "X";
+            } else if red_pawns {
+                result += "o";
+            } else if red_kings {
+                result += "O";
+            } else {
+                result += ".";
+            }
+        }
+        result
+    }
 }
 
 #[derive(Debug)]
