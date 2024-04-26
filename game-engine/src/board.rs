@@ -1,4 +1,6 @@
-use crate::{Color, BIT_MASK};
+use crate::Color;
+use crate::Regex;
+use crate::BIT_MASK;
 
 #[derive(Debug)]
 pub struct BitBoard {
@@ -93,4 +95,66 @@ impl BitBoard {
         }
         println!("{}", text);
     }
+}
+
+#[derive(Debug)]
+pub enum ParseError {
+    InvalidFormat,
+    NumberOverflow,
+    InvalidDigit,
+}
+
+
+
+pub fn move_to_bitboard(move_string: String) -> Result<MoveBit, ParseError> {
+    let move_regex = Regex::new(r"^(\d+(x|-))*\d+$").unwrap();
+
+    if !move_regex.is_match(move_string.as_str()) {
+        return Err(ParseError::InvalidFormat);
+    }
+
+    let mut current_num = 0;
+    let mut mov: u32 = 0;
+    let mut start_end: u32 = 0;
+
+    for c in move_string.chars() {
+        if c.is_digit(10) {
+            current_num *= 10;
+            current_num += c.to_digit(10).ok_or(ParseError::InvalidDigit)?;
+            if current_num > 32 {
+                return Err(ParseError::NumberOverflow);
+            }
+        } 
+        match c {
+            'x' => {
+                if start_end == 0 {
+                    start_end = BIT_MASK >> (current_num - 1);
+                    current_num = 0;
+                    continue;
+                }
+                if current_num != 0 {
+                    mov |= BIT_MASK >> (current_num - 1);
+                    current_num = 0;
+                }
+            },
+            '-' => {
+                if start_end == 0 {
+                    start_end = BIT_MASK >> (current_num - 1);
+                }
+                current_num = 0;
+            },
+            _ => {}
+        }
+    }
+
+    start_end |=  BIT_MASK >> (current_num - 1);
+    mov |= start_end;
+    Ok(MoveBit { start_end, mov })
+}
+
+#[derive(Debug)]
+#[allow(dead_code)]
+pub struct MoveBit {
+    pub mov: u32,
+    pub start_end: u32,
 }

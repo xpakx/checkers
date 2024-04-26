@@ -1,6 +1,6 @@
 use std::collections::VecDeque;
 
-use crate::{board::BitBoard, rules::Rules, Color, MoveBit};
+use crate::{board::{BitBoard, MoveBit}, rules::Rules, Color};
 
 use super::{MoveVerification, RuleDefiniton};
 

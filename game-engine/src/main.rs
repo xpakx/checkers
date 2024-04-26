@@ -6,6 +6,7 @@ mod rabbit;
 use crate::ai::{get_engine, EngineType};
 use crate::rules::{get_rules, RuleSet, MoveVerification};
 use crate::rabbit::lapin_listen;
+use crate::board::move_to_bitboard;
 use regex::Regex;
 
 #[tokio::main]
@@ -75,64 +76,4 @@ pub enum Color {
     Red,
 }
 
-#[derive(Debug)]
-enum ParseError {
-    InvalidFormat,
-    NumberOverflow,
-    InvalidDigit,
-}
-
 const BIT_MASK: u32 = 0b1000_0000_0000_0000_0000_0000_0000_0000;
-
-fn move_to_bitboard(move_string: String) -> Result<MoveBit, ParseError> {
-    let move_regex = Regex::new(r"^(\d+(x|-))*\d+$").unwrap();
-
-    if !move_regex.is_match(move_string.as_str()) {
-        return Err(ParseError::InvalidFormat);
-    }
-
-    let mut current_num = 0;
-    let mut mov: u32 = 0;
-    let mut start_end: u32 = 0;
-
-    for c in move_string.chars() {
-        if c.is_digit(10) {
-            current_num *= 10;
-            current_num += c.to_digit(10).ok_or(ParseError::InvalidDigit)?;
-            if current_num > 32 {
-                return Err(ParseError::NumberOverflow);
-            }
-        } 
-        match c {
-            'x' => {
-                if start_end == 0 {
-                    start_end = BIT_MASK >> (current_num - 1);
-                    current_num = 0;
-                    continue;
-                }
-                if current_num != 0 {
-                    mov |= BIT_MASK >> (current_num - 1);
-                    current_num = 0;
-                }
-            },
-            '-' => {
-                if start_end == 0 {
-                    start_end = BIT_MASK >> (current_num - 1);
-                }
-                current_num = 0;
-            },
-            _ => {}
-        }
-    }
-
-    start_end |=  BIT_MASK >> (current_num - 1);
-    mov |= start_end;
-    Ok(MoveBit { start_end, mov })
-}
-
-#[derive(Debug)]
-#[allow(dead_code)]
-pub struct MoveBit {
-    mov: u32,
-    start_end: u32,
-}

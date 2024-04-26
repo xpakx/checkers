@@ -1,4 +1,4 @@
-use crate::{board::BitBoard, Color, MoveBit};
+use crate::{board::{BitBoard, MoveBit}, Color};
 
 mod british;
 
