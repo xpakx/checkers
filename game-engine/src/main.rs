@@ -2,6 +2,7 @@ mod board;
 mod ai;
 mod rules;
 mod rabbit;
+mod config;
 
 use crate::ai::{get_engine, EngineType};
 use crate::rules::{get_rules, RuleSet, MoveVerification};
@@ -63,9 +64,9 @@ async fn main() {
     }
 
 
-    let rabbit_url = "amqp://guest:guest@localhost:5672";
+    let config = config::get_config();
     let mut cfg = deadpool_lapin::Config::default();
-    cfg.url = Some(rabbit_url.into());
+    cfg.url = Some(config.rabbit.into());
     let lapin_pool = cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)).unwrap();
     lapin_listen(lapin_pool.clone()).await;
 }
