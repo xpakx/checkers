@@ -1,12 +1,15 @@
 use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
+
 use serde::{Deserialize, Serialize};
 
-use crate::{board::{generate_bit_board, move_to_bitboard}, rabbit::DESTINATION_EXCHANGE, rules::{get_rules, MoveVerification}};
+use crate::{ai::get_engine, board::generate_bit_board, rabbit::DESTINATION_EXCHANGE, rules::get_rules};
 
-pub fn set_move_delegate(consumer: lapin::Consumer, channel: Channel) {
+use super::move_consumer::EngineEvent;
+
+pub fn set_ai_delegate(consumer: lapin::Consumer, channel: Channel) {
     consumer.set_delegate({
         move |delivery: DeliveryResult| {
-            println!("New move verification request");
+            println!("New ai move request");
             let channel = channel.clone();
             async move {
                 let channel = channel.clone();
@@ -20,17 +23,17 @@ pub fn set_move_delegate(consumer: lapin::Consumer, channel: Channel) {
                 };
 
                 let message = std::str::from_utf8(&delivery.data).unwrap();
-                let message: MoveEvent = match serde_json::from_str(message) {
+                let message: AiEvent = match serde_json::from_str(message) {
                     Ok(msg) => msg,
                     Err(err) => {
-                        println!("Failed to deserialize game event: {:?}", err);
+                        println!("Failed to deserialize ai event: {:?}", err);
                         return; // TODO
                     }
                 };
                 println!("Received message: {:?}", &message);
 
 
-                let response = process_move(message);
+                let response = process_ai_event(message);
                 println!("Response: {:?}", &response);
                 let response = serde_json::to_string(&response).unwrap();
 
@@ -58,27 +61,11 @@ pub fn set_move_delegate(consumer: lapin::Consumer, channel: Channel) {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct MoveEvent {
+struct AiEvent {
     game_id: usize,
     game_state: String,
-    #[serde(rename = "move")]
-    mov: String,
     ruleset: RuleSet,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct EngineEvent {
-    pub game_id: usize,
-    pub legal: bool,
-    pub new_state: String,
-    pub user: String,
-    #[serde(rename = "move")]
-    pub mov: String,
-    pub ai: bool,
-    pub finished: bool,
-    pub lost: bool,
-    pub won: bool,
+    ai_type: AIType,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -86,33 +73,21 @@ pub enum RuleSet {
     British,
 }
 
-impl Default for EngineEvent {
-    fn default() -> EngineEvent {
-        EngineEvent { 
-            game_id: 0,
-            legal: true,
-            new_state: "".into(),
-            user: "".into(),
-            mov: "".into(),
-            ai: false,
-            finished: false,
-            lost: false,
-            won: false,
-        } 
-    } 
+#[derive(Serialize, Deserialize, Debug)]
+enum AIType {
+    Random,
 }
 
 // TODO
-fn process_move(message: MoveEvent) -> EngineEvent {
-    let mov = move_to_bitboard(message.mov);
+fn process_ai_event(message: AiEvent) -> EngineEvent {
     let board = generate_bit_board(message.game_state);
     let rules = get_rules(match message.ruleset {
         RuleSet::British => crate::rules::RuleSet::British,
     });
+    let mut engine = get_engine(match message.ai_type {
+        AIType::Random => crate::ai::EngineType::Random,
+    });
+    let _mov = engine.get_move(&board.unwrap(), &crate::Color::Red, &rules);
 
-    let _legality = match (mov, board) {
-        (Ok(mov), Ok(board)) => rules.verify_move(&board, mov, &crate::Color::Red),
-        (_, _) => MoveVerification::Illegal, 
-    };
     EngineEvent {game_id: message.game_id, ..Default::default()}
 }

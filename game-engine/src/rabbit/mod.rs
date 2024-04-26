@@ -2,9 +2,10 @@ use std::time::Duration;
 
 use lapin::{options::{BasicConsumeOptions, ExchangeDeclareOptions, QueueBindOptions, QueueDeclareOptions}, types::FieldTable, ExchangeKind};
 
-use self::move_consumer::set_move_delegate;
+use self::{ai_consumer::set_ai_delegate, move_consumer::set_move_delegate};
 
 mod move_consumer;
+mod ai_consumer;
 
 pub async fn lapin_listen(pool: deadpool_lapin::Pool) {
     let mut retry_interval = tokio::time::interval(Duration::from_secs(5));
@@ -91,7 +92,7 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool) -> Result<(), Box<dyn std
         .await
         .expect("Cannot create consumer");
 
-    let _ai_consumer = channel.basic_consume(
+    let ai_consumer = channel.basic_consume(
         AI_QUEUE,
         "engine_ai_consumer",
         BasicConsumeOptions::default(),
@@ -100,6 +101,7 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool) -> Result<(), Box<dyn std
         .expect("Cannot create consumer");
     
     set_move_delegate(move_consumer, channel.clone());
+    set_ai_delegate(ai_consumer, channel.clone());
     let mut test_interval = tokio::time::interval(Duration::from_secs(5));
     loop {
         test_interval.tick().await;
