@@ -12,15 +12,18 @@ use jsonwebtoken::{decode, DecodingKey, Validation};
 
 use crate::rabbit::lapin_listen;
 use crate::rabbit::move_publisher::MoveEvent;
+use crate::config::get_config;
 
 mod rabbit;
+mod config;
 
 #[tokio::main]
 async fn main() {
+    let config = get_config();
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| format!("checkers={}", "debug").into()),
+                .unwrap_or_else(|_| format!("checkers={}", config.debug_level).into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -29,8 +32,7 @@ async fn main() {
 
     // TODO?: use connection pool
     info!("Creating redis connection…");
-    let redis_db = "redis://default:redispw@localhost:6379";
-    let redis = redis::Client::open(redis_db)
+    let redis = redis::Client::open(config.redis)
         .expect("Failed to connect to Redis");
     let redis = redis.get_connection()
         .expect("Failed to connect to Redis");
@@ -39,13 +41,12 @@ async fn main() {
     let (txmoves, _rxrabbit) = broadcast::channel(100);
     let (txgames, _rxrabbit) = broadcast::channel(100);
     let (txupdates, _rxrabbit) = broadcast::channel(100);
-    let state = AppState { jwt: String::from("secret"), tx, redis: Mutex::from(redis), txmoves, txgames, txupdates };
+    let state = AppState { jwt: config.jwt_secret, tx, redis: Mutex::from(redis), txmoves, txgames, txupdates };
     let state = Arc::new(state);
 
     let lapin_state = state.clone();
-    let rabbit_url = "amqp://guest:guest@localhost:5672";
     let mut cfg = deadpool_lapin::Config::default();
-    cfg.url = Some(rabbit_url.into());
+    cfg.url = Some(config.rabbit.into());
     let lapin_pool = cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)).unwrap();
     tokio::spawn(async move {lapin_listen(lapin_pool.clone(), lapin_state).await});
 
@@ -55,7 +56,7 @@ async fn main() {
 
     info!("Initializing router…");
     let host = "0.0.0.0";
-    let port = 8082;
+    let port = config.port;
     let listener = tokio::net::TcpListener::bind(format!("{}:{}", host, port))
         .await
         .unwrap();
