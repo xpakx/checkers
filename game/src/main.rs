@@ -215,13 +215,14 @@ fn make_move(state: Arc<AppState>, username: &String, room: usize, request: Move
         .lock()
         .unwrap()
         .set(format!("room_{}", room), game_ser).unwrap();
+    let color = game.get_current_color(); // TODO switch if rules definition says starting color is inverted
 
     let event = MoveEvent {
         game_id: game.id,
         game_state: game.current_state,
         mov: request.mov,
         ruleset: game.ruleset,
-        color: Color::White,
+        color, 
     };
     let _ = state.txmoves.send(event);
     Ok(())
@@ -323,12 +324,24 @@ pub struct Game {
     pub opponent: String,
     pub finished: bool,
     pub first_user_turn: bool,
+    pub first_user_starts: bool,
     pub blocked: bool,
     pub current_state: String,
     pub ai_type: AIType,
     pub game_type: GameType,
     pub ruleset: RuleSet,
     pub status: GameStatus,
+}
+
+impl Game {
+    pub fn get_current_color(&self) -> Color {
+        match (self.first_user_starts, self.first_user_turn) {
+            (true, true) => Color::White,
+            (true, false) => Color::Red,
+            (false, true) => Color::Red,
+            (false, false) => Color::White,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]

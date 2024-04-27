@@ -5,7 +5,7 @@ use redis::Commands;
 use ::serde::{Deserialize, Serialize};
 use tracing::{info, error};
 
-use crate::{AppState, Game, GameStatus, Color, GameType, Msg};
+use crate::{AppState, Game, GameStatus, GameType, Msg};
 
 use super::{state_consumer::AIMoveEvent, update_publisher::UpdateEvent, MOVES_EXCHANGE};
 
@@ -78,6 +78,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
         };
     }
     game.first_user_turn = !game.first_user_turn;
+    let color = game.get_current_color(); // TODO
 
     let game_data = serde_json::to_string(&game).unwrap();
     let _: () = state.redis
@@ -104,7 +105,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
             game_state: game.current_state,
             ruleset: game.ruleset,
             ai_type: game.ai_type,
-            color: Color::White, // TODO
+            color,
         };
         let engine_event = serde_json::to_string(&engine_event).unwrap();
         if let Err(err) = channel

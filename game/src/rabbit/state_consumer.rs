@@ -51,12 +51,13 @@ async fn process_message(game: Game, state: Arc<AppState>, channel: Channel) {
     let _ = state.tx.send(msg);
 
     if !game.first_user_turn && game.game_type == GameType::AI {
+        let color = game.get_current_color();  // TODO
         let engine_event = AIMoveEvent {
             game_id: game.id,
             game_state: game.current_state,
             ruleset: game.ruleset,
             ai_type: game.ai_type,
-            color: Color::White, // TODO
+            color,
         };
         let engine_event = serde_json::to_string(&engine_event).unwrap();
         if let Err(err) = channel
@@ -110,6 +111,7 @@ fn get_game_from_message(delivery: &Delivery, state: Arc<AppState>) -> Result<Ga
         game_type: message.game_type,
         ruleset: message.ruleset,
         status: message.status,
+        first_user_starts: message.user_starts,
     })
 }
 
