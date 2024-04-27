@@ -5,7 +5,7 @@ use redis::Commands;
 use ::serde::{Deserialize, Serialize};
 use tracing::{info, error};
 
-use crate::{AppState, Game, GameStatus, GameType, Msg};
+use crate::{AppState, Game, GameStatus, Color, GameType, Msg};
 
 use super::{state_consumer::AIMoveEvent, update_publisher::UpdateEvent, MOVES_EXCHANGE};
 
@@ -47,7 +47,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
         .unwrap()
         .get(format!("room_{}", event.game_id)).unwrap();
     let Some(game_db) = game_db else {
-        return; // TODO
+        return;
     };
     let mut game: Game = serde_json::from_str(game_db.as_str()).unwrap();
 
@@ -93,7 +93,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
         status: game.status,
         current_state: game.current_state.clone(),
         user_turn: game.first_user_turn,
-        last_move: "".into(), // TODO
+        last_move: event.mov, // TODO
         timestamp: chrono::Utc::now(),
     };
     let _ = state.txupdates.send(event);
@@ -104,6 +104,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
             game_state: game.current_state,
             ruleset: game.ruleset,
             ai_type: game.ai_type,
+            color: Color::White, // TODO
         };
         let engine_event = serde_json::to_string(&engine_event).unwrap();
         if let Err(err) = channel
@@ -140,10 +141,10 @@ struct EngineEvent {
     legal: bool,
     new_state: String,
     user: String,
-    row: usize,
-    column: usize,
     ai: bool,
     finished: bool,
     lost: bool,
     won: bool,
+    #[serde(rename = "move")]
+    pub mov: String,
 }

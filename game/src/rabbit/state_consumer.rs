@@ -5,7 +5,7 @@ use redis::Commands;
 use ::serde::{Deserialize, Serialize};
 use tracing::{debug, error, info};
 
-use crate::{rabbit::MOVES_EXCHANGE, AIType, AppState, Game, GameStatus, GameType, Msg, RuleSet};
+use crate::{rabbit::MOVES_EXCHANGE, AIType, AppState, Color, Game, GameStatus, GameType, Msg, RuleSet};
 
 
 pub fn set_state_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc<AppState>) {
@@ -56,6 +56,7 @@ async fn process_message(game: Game, state: Arc<AppState>, channel: Channel) {
             game_state: game.current_state,
             ruleset: game.ruleset,
             ai_type: game.ai_type,
+            color: Color::White, // TODO
         };
         let engine_event = serde_json::to_string(&engine_event).unwrap();
         if let Err(err) = channel
@@ -136,4 +137,5 @@ pub struct AIMoveEvent {
     pub game_state: String,
     pub ruleset: RuleSet,
     pub ai_type: AIType,
+    pub color: Color,
 }

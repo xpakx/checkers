@@ -4,7 +4,7 @@ use lapin::Channel;
 use serde::{Deserialize, Serialize};
 use tracing::error;
 
-use crate::{AppState, RuleSet};
+use crate::{AppState, RuleSet, Color};
 
 use super::MOVES_EXCHANGE;
 
@@ -12,27 +12,21 @@ use super::MOVES_EXCHANGE;
 pub struct MoveEvent {
     pub game_id: usize,
     pub game_state: String,
-    pub column: usize,
-    pub row: usize,
+    #[serde(rename = "move")]
+    pub mov: String,
     pub ruleset: RuleSet,
-    #[serde(skip_serializing)]
-    pub ai: bool,
+    pub color: Color,
 }
 
 pub fn move_publisher(channel: Channel, state: Arc<AppState>) -> tokio::task::JoinHandle<()> {
     tokio::spawn(async move {
         let mut rx = state.txmoves.subscribe();
         while let Ok(event) = rx.recv().await {
-            //TODO
             let msg = serde_json::to_string(&event).unwrap();
-            let routing_key = match event.ai {
-                true => "move_ai", // is it even needed?
-                false => "move",
-            };
             if let Err(err) = channel
                 .basic_publish(
                     MOVES_EXCHANGE,
-                    routing_key,
+                    "move",
                     Default::default(),
                     msg.into_bytes().as_slice(),
                     Default::default(),

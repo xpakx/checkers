@@ -17,6 +17,11 @@ use crate::config::get_config;
 mod rabbit;
 mod config;
 
+#[derive(Clone, Serialize, Deserialize)]
+pub enum Color {
+    Red, White,
+}
+
 #[tokio::main]
 async fn main() {
     let config = get_config();
@@ -212,12 +217,11 @@ fn make_move(state: Arc<AppState>, username: &String, room: usize, request: Move
         .set(format!("room_{}", room), game_ser).unwrap();
 
     let event = MoveEvent {
-        ai: false,
         game_id: game.id,
         game_state: game.current_state,
-        row: request.x,
-        column: request.y,
+        mov: request.mov,
         ruleset: game.ruleset,
+        color: Color::White,
     };
     let _ = state.txmoves.send(event);
     Ok(())
@@ -349,8 +353,8 @@ pub enum GameStatus {
 
 #[derive(Debug, Serialize, Deserialize)]
 struct MoveRequest {
-    x: usize,
-    y: usize,
+    #[serde(rename="move")]
+    mov: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
