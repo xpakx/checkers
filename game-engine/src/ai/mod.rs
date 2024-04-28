@@ -1,6 +1,7 @@
 use crate::{board::BitBoard, rules::Rules, Color};
 
 mod random_engine;
+mod counting_engine;
 
 #[derive(Debug)]
 #[allow(dead_code)]
