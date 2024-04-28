@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read, sync::Arc};
+use std::{env, fs::File, io::Read, sync::Arc};
 
 use axum::{body::{to_bytes, Body, Bytes}, extract::{Request, State}, http::{HeaderMap, StatusCode}, response::{IntoResponse, Response}, routing::{get, post}, Router};
 use reqwest::Client;
@@ -9,10 +9,11 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() {
+    let config = load_config();
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "checkers=debug".into()),
+                .unwrap_or_else(|_| format!("checkers={}", config.debug_level).into()),
         )
         .with(tracing_subscriber::fmt::layer())
         .init();
@@ -21,7 +22,7 @@ async fn main() {
     info!("Created reqwest client.");
 
     info!("Configuring services.");
-    let mut services: Vec<ServiceConfig> = load_config("config.yaml");
+    let mut services: Vec<ServiceConfig> = config.services;
     services.push(ServiceConfig { path: String::from("/game"), host: String::from("http://localhost"), port: 8080 });
     services.push(ServiceConfig { path: String::from("/authenticate"), host: String::from("http://localhost"), port: 8080 });
     services.push(ServiceConfig { path: String::from("/register"), host: String::from("http://localhost"), port: 8080 });
@@ -32,7 +33,7 @@ async fn main() {
     services.push(ServiceConfig { path: String::from("/play"), host: String::from("http://localhost"), port: 8080 });
 
     let state = AppState { client, services };
-    let origins = ["http://localhost:4200".parse().unwrap(),];
+    let origins = [config.frontend.parse().unwrap(),];
     let cors = CorsLayer::new()
         .allow_origin(origins)
         .allow_headers(Any)
@@ -46,7 +47,7 @@ async fn main() {
 
     info!("Initializing router…");
     let host = "0.0.0.0";
-    let port = 3000;
+    let port = config.port;
     let listener = tokio::net::TcpListener::bind(format!("{}:{}", host, port))
         .await
         .unwrap();
@@ -142,20 +143,87 @@ struct ServiceConfig {
 }
 
 #[derive(Deserialize, Serialize)]
-struct YAMLConfig {
+struct Config {
     services: Vec<ServiceConfig>,
+    debug_level: Option<String>,
+    port: Option<usize>,
+    frontend: Option<String>,
 }
 
-fn load_config(path: &str) -> Vec<ServiceConfig> {
+impl Default for Config {
+    fn default() -> Config {
+        Config { 
+            services: vec![],
+            port: None,
+            debug_level: None,
+            frontend: None,
+        } 
+    } 
+}
+
+struct ConfigFin {
+    services: Vec<ServiceConfig>,
+    debug_level: String,
+    port: usize,
+    frontend: String,
+}
+
+fn load_config() -> ConfigFin {
+    let env_config = load_env_config();
+    let config = load_yaml_config("config.yaml");
+
+    ConfigFin {
+        debug_level: match (config.debug_level, env_config.debug_level) {
+            (_, Some(value)) => value,
+            (Some(value), None) => value,
+            (None, None) => String::from("debug"),
+        },
+        port: match (config.port, env_config.port) {
+            (_, Some(value)) => value,
+            (Some(value), None) => value,
+            (None, None) => 8000,
+        },
+        frontend: match (config.frontend, env_config.frontend) {
+            (_, Some(value)) => value,
+            (Some(value), None) => value,
+            (None, None) => String::from("http://localhost:4200"),
+        },
+        services: config.services,
+    }
+}
+
+fn load_yaml_config(path: &str) -> Config {
     debug!("Reading services from yaml file…");
     let file = File::open(path);
+
     let Ok(mut file) = file else {
         debug!("No yaml configuration found.");
-        return vec![];
+        return Config::default()
     };
     let mut content = String::new();
     file.read_to_string(&mut content).unwrap();
     debug!("Deserializing…");
-    let config: YAMLConfig = serde_yaml::from_str(&content).unwrap();
-    config.services
+    let config: Config = serde_yaml::from_str(&content).unwrap();
+    config
+}
+
+fn load_env_config() -> Config {
+    Config {
+        debug_level: match env::var("DEBUG_LEVEL") {
+            Ok(env) => Some(env),
+            _ => None,
+        },
+        port: match env::var("SERVER_PORT") {
+            Ok(env) => match env.parse() {
+                Err(_) => None,
+                Ok(env) => Some(env),
+            },
+            _ => None,
+        },
+        frontend: match env::var("FRONTEND") {
+            Ok(env) => Some(env),
+            _ => None,
+        },
+        services: vec![],
+    }
 }
