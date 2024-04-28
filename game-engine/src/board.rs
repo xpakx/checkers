@@ -126,8 +126,6 @@ pub enum ParseError {
     InvalidDigit,
 }
 
-
-
 pub fn move_to_bitboard(move_string: String) -> Result<MoveBit, ParseError> {
     let move_regex = Regex::new(r"^(\d+(x|-))*\d+$").unwrap();
 
@@ -179,4 +177,71 @@ pub fn move_to_bitboard(move_string: String) -> Result<MoveBit, ParseError> {
 pub struct MoveBit {
     pub mov: u32,
     pub start_end: u32,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_input() {
+        let bit = move_to_bitboard("4-7".to_string()).unwrap();
+        assert_eq!(bit.mov, 0b00010010000000000000000000000000);
+        assert_eq!(bit.start_end, 0b00010010000000000000000000000000);
+    }
+
+    #[test]
+    fn test_valid_input_with_capture() {
+        let bit = move_to_bitboard("5x4".to_string()).unwrap();
+        assert_eq!(bit.mov, 0b00011000000000000000000000000000);
+        assert_eq!(bit.start_end, 0b00011000000000000000000000000000);
+    }
+
+    #[test]
+    fn test_valid_input_multiple_moves() {
+        let bit = move_to_bitboard("3x4-7".to_string()).unwrap();
+        assert_eq!(bit.mov, 0b00100010000000000000000000000000);
+        assert_eq!(bit.start_end, 0b00100010000000000000000000000000);
+    }
+
+    #[test]
+    fn test_valid_input_multiple_captures() {
+        let bit = move_to_bitboard("3x4x7".to_string()).unwrap();
+        assert_eq!(bit.mov, 0b00110010000000000000000000000000);
+        assert_eq!(bit.start_end, 0b00100010000000000000000000000000);
+    }
+
+    #[test]
+    fn test_invalid_input_invalid_character() {
+        let bit = move_to_bitboard("4&7".to_string());
+        assert!(bit.is_err());
+        assert_eq!(format!("{:?}", bit.unwrap_err()), format!("{:?}", ParseError::InvalidFormat));
+    }
+
+    #[test]
+    fn test_invalid_input_number_overflow() {
+        let bit = move_to_bitboard("40x7".to_string());
+        assert_eq!(format!("{:?}", bit.unwrap_err()), format!("{:?}", ParseError::NumberOverflow));
+    }
+
+    #[test]
+    fn test_valid_input_single_move() {
+        let bit = move_to_bitboard("8".to_string()).unwrap();
+        assert_eq!(bit.mov, 0b00000001000000000000000000000000);
+        assert_eq!(bit.start_end, 0b00000001000000000000000000000000);
+    }
+
+    #[test]
+    fn test_valid_input_reversed_start_end() {
+        let bit = move_to_bitboard("7-4".to_string()).unwrap();
+        assert_eq!(bit.mov, 0b00010010000000000000000000000000);
+        assert_eq!(bit.start_end, 0b00010010000000000000000000000000);
+    }
+
+    #[test]
+    fn test_valid_input_full_board_move() {
+        let bit = move_to_bitboard("1-32".to_string()).unwrap();
+        assert_eq!(bit.mov, 0b10000000000000000000000000000001);
+        assert_eq!(bit.start_end, 0b10000000000000000000000000000001);
+    }
 }
