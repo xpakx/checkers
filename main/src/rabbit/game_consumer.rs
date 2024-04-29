@@ -94,7 +94,7 @@ pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc
                 delivery
                     .ack(BasicAckOptions::default())
                     .await
-                    .expect("Failed to acknowledge message"); // TODO
+                    .expect("Failed to acknowledge message");
             }
         }
     }

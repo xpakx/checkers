@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Json};
 use tracing::{debug, info};
+use rand::Rng;
 
 use crate::{game::{self, error::GameError, repository::{change_invitation_status, get_finished_games, get_game, get_game_details, get_games, get_moves, get_requests, save_game, AIType, GameModel, GameType, InvitationStatus, RuleSet}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedJson, AppState};
 
@@ -98,6 +99,8 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
         GameType::AI => InvitationStatus::Accepted,
         GameType::User => InvitationStatus::Issued,
     };
+    let mut rng = rand::thread_rng();
+    let user_starts = rng.gen::<bool>();
 
     debug!("Trying to get user {} from db…", username);
     let query_result = get_user(&state.db, &username).await;
@@ -130,6 +133,8 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
             game_type,
             ai_type,
             invitation,
+            user_starts,
+            user_turn: user_starts,
             ..Default::default() 
         }).await;
 

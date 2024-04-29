@@ -61,7 +61,7 @@ pub fn set_update_delegate(consumer: lapin::Consumer, state: Arc<AppState>) {
                 delivery
                     .ack(BasicAckOptions::default())
                     .await
-                    .expect("Failed to acknowledge message"); // TODO
+                    .expect("Failed to acknowledge message");
             }
         }
     }

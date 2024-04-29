@@ -24,8 +24,6 @@ impl Default for Config {
     } 
 }
 
-// TODO
-#[allow(dead_code)]
 pub struct ConfigFin {
     pub debug_level: String,
     pub port: usize,
