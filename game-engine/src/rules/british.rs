@@ -928,4 +928,124 @@ mod tests {
         ];
         assert_eq!(jumps, expected_jumps);
     }
+
+    #[test]
+    fn test_legal_move_no_ambiguity() {
+        let board = BitBoard {
+            white_pawns: 0b1000_0000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_0000_0000_0000_0000_0000_0000,  
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,  
+        };
+
+        let mov = MoveBit {
+            start_end:   0b1000_1000_0000_0000_0000_0000_0000_0000,
+            mov:         0b1000_1000_0000_0000_0000_0000_0000_0000,
+        };
+        
+        let rules = BritishRules::new();
+        let result = rules.verify_move(&board, mov, &Color::White);
+        
+        assert_eq!(result, MoveVerification::Ok(0b1000_1000_0000_0000_0000_0000_0000_0000));
+    }
+
+    #[test]
+    fn test_illegal_backward_move() {
+        let board = BitBoard {
+            white_pawns: 0b0000_1000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_0000_0000_0000_0000_0000_0000,  
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,  
+        };
+
+        let mov = MoveBit {
+            start_end:   0b1000_1000_0000_0000_0000_0000_0000_0000,
+            mov:         0b1000_1000_0000_0000_0000_0000_0000_0000,
+        };
+        
+        let rules = BritishRules::new();
+        let result = rules.verify_move(&board, mov, &Color::White);
+        
+        assert_eq!(result, MoveVerification::Illegal);
+    }
+
+    #[test]
+    fn test_illegal_far_move() {
+        let board = BitBoard {
+            white_pawns: 0b0000_1000_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_0000_0000_0000_0000_0000_0000,  
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,  
+        };
+
+        let mov = MoveBit {
+            start_end:   0b0000_1000_0000_0000_1000_0000_0000_0000,
+            mov:         0b0000_1000_0000_0000_1000_0000_0000_0000,
+        };
+        
+        let rules = BritishRules::new();
+        let result = rules.verify_move(&board, mov, &Color::White);
+        
+        assert_eq!(result, MoveVerification::Illegal);
+    }
+
+    #[test]
+    fn test_ambigous_move() {
+        let board = BitBoard {
+            white_pawns: 0b0000_0100_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_1100_0000_1100_0000_0000_0000,  
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,  
+        };
+
+        let mov = MoveBit {
+            start_end:   0b0000_0100_0000_0000_0000_0100_0000_0000,
+            mov:         0b0000_0100_0000_0000_0000_0100_0000_0000,
+        };
+        
+        let rules = BritishRules::new();
+        let result = rules.verify_move(&board, mov, &Color::White);
+        
+        assert_eq!(result, MoveVerification::Ambiguous);
+    }
+
+    #[test]
+    fn test_ambigous_move_precised() {
+        let board = BitBoard {
+            white_pawns: 0b0000_0100_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_1100_0000_1100_0000_0000_0000,  
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,  
+        };
+
+        let mov = MoveBit {
+            start_end:   0b0000_0100_0000_0000_0000_0100_0000_0000,
+            mov:         0b0000_0100_0000_1000_0000_0100_0000_0000,
+        };
+        
+        let rules = BritishRules::new();
+        let result = rules.verify_move(&board, mov, &Color::White);
+        
+        assert_eq!(result, MoveVerification::Ok(0b0000_0100_1000_0000_1000_0100_0000_0000));
+    }
+
+    #[test]
+    fn test_shorthand_legal_move() {
+        let board = BitBoard {
+            white_pawns: 0b0000_0100_0000_0000_0000_0000_0000_0000,
+            red_pawns:   0b0000_0000_1000_0000_1000_0000_0000_0000,  
+            white_kings: 0b0000_0000_0000_0000_0000_0000_0000_0000,
+            red_kings:   0b0000_0000_0000_0000_0000_0000_0000_0000,  
+        };
+
+        let mov = MoveBit {
+            start_end:   0b0000_0100_0000_0000_0000_0100_0000_0000,
+            mov:         0b0000_0100_0000_0000_0000_0100_0000_0000,
+        };
+        
+        let rules = BritishRules::new();
+        let result = rules.verify_move(&board, mov, &Color::White);
+        
+        assert_eq!(result, MoveVerification::Ok(0b0000_0100_1000_0000_1000_0100_0000_0000));
+    }
 }

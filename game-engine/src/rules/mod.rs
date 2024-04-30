@@ -15,6 +15,7 @@ pub enum RuleSet {
     British,
 }
 
+#[derive(Debug, PartialEq)]
 pub enum MoveVerification {
     Ok(u32),
     Illegal,
