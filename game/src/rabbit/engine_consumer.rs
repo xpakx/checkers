@@ -5,7 +5,7 @@ use redis::Commands;
 use ::serde::{Deserialize, Serialize};
 use tracing::{info, error};
 
-use crate::{AppState, Game, GameStatus, GameType, Msg};
+use crate::{AppState, Color, Game, GameStatus, GameType, Msg};
 
 use super::{state_consumer::AIMoveEvent, update_publisher::UpdateEvent, MOVES_EXCHANGE};
 
@@ -65,6 +65,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
         return
     }
 
+    let old_state = game.current_state.clone();
     game.current_state = event.new_state;
     game.blocked = false;
     if event.finished {
@@ -78,7 +79,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
         };
     }
     game.first_user_turn = !game.first_user_turn;
-    let color = game.get_current_color(); // TODO
+    let color = game.get_current_color();
 
     let game_data = serde_json::to_string(&game).unwrap();
     let _: () = state.redis
@@ -86,7 +87,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
         .unwrap()
         .set(format!("room_{}", game.id), game_data.clone()).unwrap();
 
-    let msg = Msg { msg: "Move accepted".into(), room: game.id, user: Some(game.user) }; // TODO: more informative response
+    let msg = get_move_message(game.id, &old_state, &(game.current_state), event.user, event.mov.clone(), &color);
     let _ = state.tx.send(msg);
 
     let event = UpdateEvent {
@@ -94,7 +95,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
         status: game.status,
         current_state: game.current_state.clone(),
         user_turn: game.first_user_turn,
-        last_move: event.mov, // TODO
+        last_move: event.mov,
         timestamp: chrono::Utc::now(),
     };
     let _ = state.txupdates.send(event);
@@ -148,4 +149,64 @@ struct EngineEvent {
     won: bool,
     #[serde(rename = "move")]
     pub mov: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct MoveWsMessage {
+    player: String,
+    mov: String,
+    legal: bool,
+    details: Option<MoveDetails>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct MoveDetails {
+    start: usize,
+    end: usize,
+    captures: Vec<usize>,
+}
+
+fn get_move_message(id: usize, state_old: &String, state_new: &String, player: String, mov: String, color: &Color) -> Msg {
+    let len = state_old.len();
+    let old: Vec<char> = state_old.to_lowercase().chars().collect();
+    let new: Vec<char> = state_new.to_lowercase().chars().collect();
+    let mut captures = Vec::new();
+    for i in 0..len {
+        match color {
+            Color::Red => if old[i] == 'x' && new[i] != 'x' {
+                captures.push(i);
+            }, 
+            Color::White => if old[i] == 'o' && new[i] != 'o'  {
+                captures.push(i);
+            }, 
+        }
+    }
+
+    let (start, end) = match get_start_end(&mov) {
+        Some(x) => x,
+        None => (0, 0),
+    };
+
+    let msg = MoveWsMessage { 
+        player, 
+        mov, 
+        legal: true, 
+        details: Some(MoveDetails {
+            start,
+            end,
+            captures,
+        }),
+    };
+    let msg = serde_json::to_string(&msg).unwrap();
+    Msg { msg, room: id, user: None }
+}
+
+fn get_start_end(mov: &String) -> Option<(usize, usize)> {
+    let parts: Vec<&str> = mov.split(&['x', '-'][..]).collect();
+    if let Some(first) = parts.first().and_then(|s| s.parse::<usize>().ok()) {
+        if let Some(last) = parts.last().and_then(|s| s.parse::<usize>().ok()) {
+            return Some((first, last));
+        }
+    }
+    None
 }
