@@ -58,8 +58,8 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
             .lock()
             .unwrap()
             .set(format!("room_{}", game.id), game_data.clone()).unwrap();
-        if event.ai {
-            let msg = Msg { msg: "Not legal move".into(), room: game.id, user: Some(game.user) }; // TODO: more informative response
+        if !event.ai {
+            let msg = get_error_message(game.id, event.user, event.mov);
             let _ = state.tx.send(msg);
         }
         return
@@ -209,4 +209,15 @@ fn get_start_end(mov: &String) -> Option<(usize, usize)> {
         }
     }
     None
+}
+
+fn get_error_message(id: usize, player: String, mov: String) -> Msg {
+    let msg = MoveWsMessage { 
+        player, 
+        mov, 
+        legal: false, 
+        details: None,
+    };
+    let msg = serde_json::to_string(&msg).unwrap();
+    Msg { msg, room: id, user: None }
 }
