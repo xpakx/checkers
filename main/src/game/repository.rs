@@ -303,3 +303,58 @@ impl Default for MoveModel {
         } 
     } 
 }
+
+#[derive(Serialize, Deserialize)]
+pub struct GameResponse {
+    pub id: i64,
+    pub invitation: InvitationStatus,
+    pub game_type: GameType,
+    pub ruleset: RuleSet,
+    pub ai_type: AIType,
+    pub status: GameStatus,
+
+    pub my_turn: bool,
+    pub user_turn: bool,
+    pub user_id: i64,
+    pub opponent_id: Option<i64>,
+    pub user: String,
+    pub opponent: Option<String>,
+    pub current_state: Vec<Vec<Field>>,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum Field {
+    WhitePawn, WhiteKing, RedPawn, RedKing, Empty,
+}
+
+impl GameResponse {
+    pub fn from(game: &GameDetails) -> GameResponse {
+        let size = 8; // TODO
+        let fields: Vec<Field> = game.current_state.chars().map(|c| {
+            match c {
+                'x' => Field::WhitePawn,
+                'X' => Field::WhiteKing,
+                'o' => Field::RedPawn,
+                'O' => Field::RedKing,
+                _ => Field::Empty,
+            }
+        })
+        .collect();
+        let current_state = fields.chunks(size).map(|c| c.to_vec()).collect();
+        GameResponse {
+            id: game.id,
+            invitation: game.invitation,
+            game_type: game.game_type,
+            ruleset: game.ruleset,
+            ai_type: game.ai_type,
+            status: game.status,
+            my_turn: false, // TODO
+            user_turn: game.user_turn,
+            user_id: game.user_id,
+            opponent_id: game.opponent_id,
+            user: game.user,
+            opponent: game.opponent,
+            current_state,
+        }
+    }
+}

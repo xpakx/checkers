@@ -4,7 +4,7 @@ use axum::{extract::{Path, State}, response::{IntoResponse, Response}, Json};
 use tracing::{debug, info};
 use rand::Rng;
 
-use crate::{game::{self, error::GameError, repository::{change_invitation_status, get_finished_games, get_game, get_game_details, get_games, get_moves, get_requests, save_game, AIType, GameModel, GameType, InvitationStatus, RuleSet}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedJson, AppState};
+use crate::{game::{self, error::GameError, repository::{change_invitation_status, get_finished_games, get_game, get_game_details, get_games, get_moves, get_requests, save_game, AIType, GameModel, GameResponse, GameType, InvitationStatus, RuleSet}, NewGameResponse}, security::UserData, user::repository::get_user, validation::ValidatedJson, AppState};
 
 use super::{AcceptRequest, GameRequest};
 
@@ -26,7 +26,7 @@ pub async fn games(State(state): State<Arc<AppState>>, user: UserData) -> Respon
     if let Err(err) = query_result {
         return err.into_response()
     }
-    let games = query_result.unwrap();
+    let games: Vec<GameResponse> = query_result.unwrap().iter().map(|game| GameResponse::from(game)).collect();
 
     return Json(games).into_response()
 }
@@ -49,7 +49,7 @@ pub async fn archive(State(state): State<Arc<AppState>>, user: UserData) -> Resp
     if let Err(err) = query_result {
         return err.into_response()
     }
-    let games = query_result.unwrap();
+    let games: Vec<GameResponse> = query_result.unwrap().iter().map(|game| GameResponse::from(game)).collect();
 
     return Json(games).into_response()
 }
@@ -72,7 +72,7 @@ pub async fn requests(State(state): State<Arc<AppState>>, user: UserData) -> Res
     if let Err(err) = query_result {
         return err.into_response()
     }
-    let games = query_result.unwrap();
+    let games: Vec<GameResponse> = query_result.unwrap().iter().map(|game| GameResponse::from(game)).collect();
 
     return Json(games).into_response()
 }
@@ -207,6 +207,7 @@ pub async fn game(State(state): State<Arc<AppState>>, _user: UserData, Path(id):
         return err.into_response()
     }
     let game = query_result.unwrap();
+    let game = GameResponse::from(&game);
 
     return Json(game).into_response()
 }
