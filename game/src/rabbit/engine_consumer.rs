@@ -174,10 +174,10 @@ fn get_move_message(id: usize, state_old: &String, state_new: &String, player: S
     for i in 0..len {
         match color {
             Color::Red => if old[i] == 'x' && new[i] != 'x' {
-                captures.push(i);
+                captures.push(i+1);
             }, 
             Color::White => if old[i] == 'o' && new[i] != 'o'  {
-                captures.push(i);
+                captures.push(i+1);
             }, 
         }
     }
