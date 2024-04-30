@@ -192,27 +192,27 @@ pub async fn save_move(db: &PgPool, mv: MoveModel) -> Result<i64, GameError> {
     }
 }
 
-#[derive(Serialize, Deserialize, sqlx::Type)]
+#[derive(Serialize, Deserialize, sqlx::Type, Clone, Copy)]
 #[repr(i16)]
 pub enum GameType {
     User = 0,
     AI = 1,
 }
 
-#[derive(Serialize, Deserialize, sqlx::Type)]
+#[derive(Serialize, Deserialize, sqlx::Type, Clone, Copy)]
 #[repr(i16)]
 pub enum RuleSet {
     British = 0,
 }
 
-#[derive(Serialize, Deserialize, sqlx::Type)]
+#[derive(Serialize, Deserialize, sqlx::Type, Clone, Copy)]
 #[repr(i16)]
 pub enum AIType {
     None = 0,
     Random = 1,
 }
 
-#[derive(Debug, Serialize, Deserialize, PartialEq, sqlx::Type)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, sqlx::Type, Clone, Copy)]
 #[sqlx(type_name = "smallint")]
 #[repr(i16)]
 pub enum InvitationStatus {
@@ -221,7 +221,7 @@ pub enum InvitationStatus {
     Rejected = 2,
 }
 
-#[derive(Serialize, Deserialize, sqlx::Type)]
+#[derive(Serialize, Deserialize, sqlx::Type, Clone, Copy)]
 #[repr(i16)]
 pub enum GameStatus {
     NotFinished = 0,
@@ -352,8 +352,8 @@ impl GameResponse {
             user_turn: game.user_turn,
             user_id: game.user_id,
             opponent_id: game.opponent_id,
-            user: game.user,
-            opponent: game.opponent,
+            user: game.user.clone(),
+            opponent: game.opponent.clone(),
             current_state,
         }
     }
