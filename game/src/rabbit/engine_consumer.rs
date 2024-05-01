@@ -59,7 +59,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
             .unwrap()
             .set(format!("room_{}", game.id), game_data.clone()).unwrap();
         if !event.ai {
-            let msg = get_error_message(game.id, event.user, event.mov);
+            let msg = get_error_message(game.id, game.get_current_user(), event.mov);
             let _ = state.tx.send(msg);
         }
         return
@@ -80,6 +80,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
     }
     game.first_user_turn = !game.first_user_turn;
     let color = game.get_current_color();
+    let user = game.get_current_user();
 
     let game_data = serde_json::to_string(&game).unwrap();
     let _: () = state.redis
@@ -87,7 +88,7 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
         .unwrap()
         .set(format!("room_{}", game.id), game_data.clone()).unwrap();
 
-    let msg = get_move_message(game.id, &old_state, &(game.current_state), event.user, event.mov.clone(), &color);
+    let msg = get_move_message(game.id, &old_state, &(game.current_state), user, event.mov.clone(), &color);
     let _ = state.tx.send(msg);
 
     let event = UpdateEvent {
@@ -142,7 +143,6 @@ struct EngineEvent {
     game_id: i64,
     legal: bool,
     new_state: String,
-    user: String,
     ai: bool,
     finished: bool,
     lost: bool,
