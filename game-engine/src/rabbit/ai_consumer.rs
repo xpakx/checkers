@@ -94,6 +94,8 @@ fn process_ai_event(message: AiEvent) -> EngineEvent {
     EngineEvent {
         game_id: message.game_id,
         new_state: board.to_string(),
+        ai: true,
+        legal: true,
         ..Default::default()
     }
 }

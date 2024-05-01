@@ -113,6 +113,10 @@ fn process_move(message: MoveEvent) -> EngineEvent {
         (Ok(mov), Ok(board)) => rules.verify_move(board, mov, &message.color),
         (_, _) => MoveVerification::Illegal, 
     };
+    let legal = match legality {
+        MoveVerification::Ok(_) => true,
+        _ => false,
+    };
     let state = match (legality, &board) {
         (MoveVerification::Ok(mov), Ok(board)) => board.apply_move(mov, message.color).to_string(),
         _ => message.game_state,
@@ -121,6 +125,7 @@ fn process_move(message: MoveEvent) -> EngineEvent {
         game_id: message.game_id,
         new_state: state,
         mov: message.mov,
+        legal,
         ..Default::default()
     }
 }
