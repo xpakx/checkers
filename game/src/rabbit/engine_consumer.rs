@@ -78,9 +78,9 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
             _ => GameStatus::Drawn,
         };
     }
-    game.first_user_turn = !game.first_user_turn;
     let color = game.get_current_color();
     let user = game.get_current_user();
+    game.first_user_turn = !game.first_user_turn;
 
     let game_data = serde_json::to_string(&game).unwrap();
     let _: () = state.redis
