@@ -154,6 +154,7 @@ struct EngineEvent {
 #[derive(Debug, Serialize, Deserialize)]
 struct MoveWsMessage {
     player: String,
+    #[serde(rename = "move")]
     mov: String,
     legal: bool,
     details: Option<MoveDetails>,
@@ -164,6 +165,7 @@ struct MoveDetails {
     start: usize,
     end: usize,
     captures: Vec<usize>,
+    // TODO: status
 }
 
 fn get_move_message(id: usize, state_old: &String, state_new: &String, player: String, mov: String, color: &Color) -> Msg {

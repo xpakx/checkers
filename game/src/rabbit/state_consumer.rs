@@ -151,15 +151,11 @@ pub enum Field {
 
 #[derive(Serialize, Deserialize)]
 pub struct GameResponse {
-    pub id: usize,
-    pub game_type: GameType,
-    pub ruleset: RuleSet,
-    pub ai_type: AIType,
     pub status: GameStatus,
     pub my_turn: bool,
     pub user_turn: bool,
-    pub user: String,
-    pub opponent: String,
+    pub username1: String,
+    pub username2: String,
     pub current_state: Vec<Vec<Field>>,
 }
 
@@ -178,15 +174,11 @@ impl GameResponse {
         .collect();
         let current_state = fields.chunks(size).map(|c| c.to_vec()).collect();
         GameResponse {
-            id: game.id,
-            game_type: game.game_type,
-            ruleset: game.ruleset,
-            ai_type: game.ai_type,
             status: game.status,
             my_turn: false, // TODO
             user_turn: game.first_user_turn,
-            user: game.user.clone(),
-            opponent: game.opponent.clone(),
+            username1: game.user.clone(),
+            username2: game.opponent.clone(),
             current_state,
         }
     }
