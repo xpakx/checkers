@@ -13,6 +13,7 @@ use jsonwebtoken::{decode, DecodingKey, Validation};
 use crate::rabbit::lapin_listen;
 use crate::rabbit::move_publisher::MoveEvent;
 use crate::config::get_config;
+use crate::rabbit::state_consumer::GameResponse;
 
 mod rabbit;
 mod config;
@@ -151,7 +152,9 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
                             let _ = state.txgames.send(event);
                         },
                         Some(game) => {
-                            let msg = serde_json::to_string(&game).unwrap();
+                            let game: Game = serde_json::from_str(game.as_str()).unwrap();
+                            let msg = GameResponse::from(&game);
+                            let msg = serde_json::to_string(&msg).unwrap();
                             let msg = Msg { msg, room, user: Some(name.clone()) };
                             let _ = state.tx.send(msg);
                         }

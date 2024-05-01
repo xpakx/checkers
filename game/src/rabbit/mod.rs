@@ -7,7 +7,7 @@ use tracing::{debug, info};
 use crate::{rabbit::{engine_consumer::set_engine_delegate, game_publisher::game_publisher, move_publisher::move_publisher, state_consumer::set_state_delegate, update_publisher::update_publisher}, AppState};
 
 mod engine_consumer;
-mod state_consumer;
+pub mod state_consumer;
 pub mod move_publisher;
 pub mod game_publisher;
 pub mod update_publisher;

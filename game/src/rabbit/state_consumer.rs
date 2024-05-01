@@ -150,17 +150,17 @@ pub enum Field {
 }
 
 #[derive(Serialize, Deserialize)]
-struct GameResponse {
-    id: usize,
-    game_type: GameType,
-    ruleset: RuleSet,
-    ai_type: AIType,
-    status: GameStatus,
-    my_turn: bool,
-    user_turn: bool,
-    user: String,
-    opponent: String,
-    current_state: Vec<Vec<Field>>,
+pub struct GameResponse {
+    pub id: usize,
+    pub game_type: GameType,
+    pub ruleset: RuleSet,
+    pub ai_type: AIType,
+    pub status: GameStatus,
+    pub my_turn: bool,
+    pub user_turn: bool,
+    pub user: String,
+    pub opponent: String,
+    pub current_state: Vec<Vec<Field>>,
 }
 
 impl GameResponse {
