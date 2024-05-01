@@ -213,11 +213,11 @@ fn get_start_end(mov: &String) -> Option<(usize, usize)> {
 
 fn get_error_message(id: usize, player: String, mov: String) -> Msg {
     let msg = MoveWsMessage { 
-        player, 
+        player: player.clone(), 
         mov, 
         legal: false, 
         details: None,
     };
     let msg = serde_json::to_string(&msg).unwrap();
-    Msg { msg, room: id, user: None }
+    Msg { msg, room: id, user: Some(player) }
 }
