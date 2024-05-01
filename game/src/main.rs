@@ -344,22 +344,22 @@ impl Game {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum AIType {
     None, Random,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum GameType {
     User, AI,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub enum RuleSet {
     British,
 }
 
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Copy)]
 pub enum GameStatus {
     NotFinished, Won, Lost, Drawn,
 }

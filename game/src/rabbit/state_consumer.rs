@@ -47,7 +47,9 @@ async fn process_message(game: Game, state: Arc<AppState>, channel: Channel) {
         .lock()
         .unwrap()
         .set(format!("room_{}", game.id), game_data.clone()).unwrap();
-    let msg = Msg { msg: game_data, room: game.id, user: None };
+    let response = GameResponse::from(&game);
+    let response = serde_json::to_string(&response).unwrap();
+    let msg = Msg { msg: response, room: game.id, user: None };
     let _ = state.tx.send(msg);
 
     if !game.first_user_turn && game.game_type == GameType::AI {
@@ -140,4 +142,52 @@ pub struct AIMoveEvent {
     pub ruleset: RuleSet,
     pub ai_type: AIType,
     pub color: Color,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub enum Field {
+    WhitePawn, WhiteKing, RedPawn, RedKing, Empty,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GameResponse {
+    id: usize,
+    game_type: GameType,
+    ruleset: RuleSet,
+    ai_type: AIType,
+    status: GameStatus,
+    my_turn: bool,
+    user_turn: bool,
+    user: String,
+    opponent: String,
+    current_state: Vec<Vec<Field>>,
+}
+
+impl GameResponse {
+    pub fn from(game: &Game) -> GameResponse {
+        let size = 8; // TODO
+        let fields: Vec<Field> = game.current_state.chars().map(|c| {
+            match c {
+                'x' => Field::WhitePawn,
+                'X' => Field::WhiteKing,
+                'o' => Field::RedPawn,
+                'O' => Field::RedKing,
+                _ => Field::Empty,
+            }
+        })
+        .collect();
+        let current_state = fields.chunks(size).map(|c| c.to_vec()).collect();
+        GameResponse {
+            id: game.id,
+            game_type: game.game_type,
+            ruleset: game.ruleset,
+            ai_type: game.ai_type,
+            status: game.status,
+            my_turn: false, // TODO
+            user_turn: game.first_user_turn,
+            user: game.user.clone(),
+            opponent: game.opponent.clone(),
+            current_state,
+        }
+    }
 }
