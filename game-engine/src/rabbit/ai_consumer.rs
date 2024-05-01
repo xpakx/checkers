@@ -91,5 +91,9 @@ fn process_ai_event(message: AiEvent) -> EngineEvent {
     let mov = engine.get_move(&board, &message.color, &rules);
     let board = board.apply_move(mov, message.color);
 
-    EngineEvent {game_id: message.game_id, new_state: board.to_string(), ..Default::default()}
+    EngineEvent {
+        game_id: message.game_id,
+        new_state: board.to_string(),
+        ..Default::default()
+    }
 }

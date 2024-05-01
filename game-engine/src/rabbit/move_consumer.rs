@@ -73,7 +73,6 @@ pub struct EngineEvent {
     pub game_id: usize,
     pub legal: bool,
     pub new_state: String,
-    pub user: String,
     #[serde(rename = "move")]
     pub mov: String,
     pub ai: bool,
@@ -93,7 +92,6 @@ impl Default for EngineEvent {
             game_id: 0,
             legal: true,
             new_state: "".into(),
-            user: "".into(),
             mov: "".into(),
             ai: false,
             finished: false,
