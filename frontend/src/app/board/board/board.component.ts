@@ -91,7 +91,10 @@ export class BoardComponent implements OnInit, OnDestroy {
   }
 
   onBoard(board: BoardMessage) {
-    // TODO
+    // TODO: errors?
+    this.game = board;
+    // TODO: reverse board for reds?
+    this.board = board.currentState;
   }
 
 }
