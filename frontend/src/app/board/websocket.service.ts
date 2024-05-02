@@ -5,6 +5,7 @@ import { BoardMessage } from './dto/board-message';
 import { MoveMessage } from './dto/move-message';
 import { MoveRequest } from './dto/move-request';
 import { ChatMessage } from './dto/chat-message';
+import { SubscribeRequest } from './dto/subscribe-request';
 
 @Injectable({
   providedIn: 'root'
@@ -33,18 +34,33 @@ export class WebsocketService {
   }
 
   connect() {
-    // TODO
     this.subject = new WebSocket(this.apiUrl);
-
+    this.subject.onmessage = (event: MessageEvent<any>) => this.onMessage(event);
+    this.subject.onclose = () => this.onClose();
   }
 
   makeMove(gameId: number, move: MoveRequest) {
   }
 
-
   subscribeGame(gameId: number) {
+    if (!this.subject) {
+      return;
+    }
+    let request: SubscribeRequest = {path: "/subscribe", game_id: gameId};
+    this.subject.send(JSON.stringify(request));
   }
 
   disconnect() {
+    this.subject?.close();
+  }
+
+  onMessage(event: MessageEvent<any>) {
+    // TODO
+    console.log(event);
+  }
+
+  onClose() {
+    // TODO
+    console.log("Closed");
   }
 }
