@@ -59,7 +59,31 @@ export class BoardComponent implements OnInit, OnDestroy {
     if (!move.legal) {
       return;
     }
-    // TODO
+    let details = move.details; 
+    if (!details) {
+      return;
+    }
+    
+    let start = this.mapIndex(details.start);
+    let end = this.mapIndex(details.end);
+    let type = this.board[start[0]][start[1]];
+    this.board[start[0]][start[1]] = "Empty";
+    this.board[end[0]][end[1]] = type; // TODO: promotion
+    
+    for (let index of details.captures) {
+      let indices = this.mapIndex(index);
+      this.board[indices[0]][indices[1]] = "Empty";
+    }
+  }
+
+  mapIndex(index: number): number[] {
+    var dim = this.board.length;
+
+    // TODO: reversed board
+    var rowIndex = Math.floor(index / dim);
+    var colIndex = index % dim;
+
+    return [rowIndex, colIndex];
   }
 
   onChat(move: ChatMessage) {

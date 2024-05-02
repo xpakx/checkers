@@ -1,8 +1,10 @@
+import { MoveDetails } from "./move-details";
+
 export interface MoveMessage {
     player: String;
     move: String;
     legal: boolean;
 
-    details?: "Miss" | "Hit" | "Sunk";
+    details?: MoveDetails;
     status: "NotFinished" | "Won" | "Lost" | "Drawn"; // TODO
 }
