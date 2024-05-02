@@ -13,6 +13,7 @@ export class WebsocketService {
   private apiUrl: string;
 
   subject?: WebSocket;
+
   private boardSubject: Subject<BoardMessage> = new Subject<BoardMessage>();
   board$: Observable<BoardMessage> = this.boardSubject.asObservable();
 
