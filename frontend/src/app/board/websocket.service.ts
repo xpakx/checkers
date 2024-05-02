@@ -69,12 +69,20 @@ export class WebsocketService {
   }
 
   onMessage(event: MessageEvent<any>) {
-    // TODO
+    console.log(event);
+    let response: any = JSON.parse(event.data);
+    if ("move" in response) {
+      this.moveSubject.next(response as MoveMessage);
+    } else if ("message" in response) {
+      this.chatSubject.next(response as ChatMessage);
+    } else if ("username1" in response) {
+      this.boardSubject.next(response as BoardMessage);
+    }
     console.log(event);
   }
 
   onClose() {
-    // TODO
+    // TODO: reconnect?
     console.log("Closed");
   }
 }
