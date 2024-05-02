@@ -6,6 +6,7 @@ import { MoveMessage } from './dto/move-message';
 import { MoveRequest } from './dto/move-request';
 import { ChatMessage } from './dto/chat-message';
 import { SubscribeRequest } from './dto/subscribe-request';
+import { ChatRequest } from './dto/chat-request';
 
 @Injectable({
   providedIn: 'root'
@@ -39,7 +40,20 @@ export class WebsocketService {
     this.subject.onclose = () => this.onClose();
   }
 
-  makeMove(gameId: number, move: MoveRequest) {
+  makeMove(move: String) {
+    if (!this.subject) {
+      return;
+    }
+    let request: MoveRequest = {path: "/move", move: move};
+    this.subject.send(JSON.stringify(request));
+  }
+
+  sendChat(message: String) {
+    if (!this.subject) {
+      return;
+    }
+    let request: ChatRequest = {path: "/chat", message: message};
+    this.subject.send(JSON.stringify(request));
   }
 
   subscribeGame(gameId: number) {
