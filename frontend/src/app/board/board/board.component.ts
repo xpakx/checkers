@@ -31,6 +31,8 @@ export class BoardComponent implements OnInit, OnDestroy {
   private chatSub?: Subscription;
   game?: BoardMessage;
 
+  chat: ChatMessage[] = [];
+
   @Input() set gameId(value: number | undefined) {
     this._gameId = value;
   }
@@ -86,8 +88,8 @@ export class BoardComponent implements OnInit, OnDestroy {
     return [rowIndex, colIndex];
   }
 
-  onChat(move: ChatMessage) {
-    // TODO
+  onChat(message: ChatMessage) {
+    this.chat.push(message);
   }
 
   onBoard(board: BoardMessage) {
