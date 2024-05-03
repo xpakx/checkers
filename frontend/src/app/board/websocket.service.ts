@@ -27,6 +27,7 @@ export class WebsocketService {
 
   constructor() { 
     this.apiUrl = environment.apiUrl.replace(/^http/, 'ws');
+    this.apiUrl = "ws://localhost:8081/ws";
     if (!this.apiUrl.startsWith("ws")) {
       let frontendUrl = window.location.origin.replace(/^http/, 'ws');
       this.apiUrl = frontendUrl + environment.apiUrl;
@@ -60,8 +61,18 @@ export class WebsocketService {
     if (!this.subject) {
       return;
     }
-    let request: SubscribeRequest = {path: "/subscribe", game_id: gameId};
-    this.subject.send(JSON.stringify(request));
+    if (this.subject.readyState == WebSocket.OPEN) {
+      this.doSubscribe(gameId);
+    } else {
+      this.subject.onopen = () => this.doSubscribe(gameId);
+    }
+
+  }
+
+  doSubscribe(gameId: number) {
+    console.log(`trying to subscribe game ${gameId}`);
+    let request: SubscribeRequest = { path: "/subscribe", game_id: gameId };
+    this.subject!.send(JSON.stringify(request));
   }
 
   disconnect() {
@@ -71,14 +82,17 @@ export class WebsocketService {
   onMessage(event: MessageEvent<any>) {
     console.log(event);
     let response: any = JSON.parse(event.data);
+    console.log(response);
     if ("move" in response) {
+      console.log("Move message");
       this.moveSubject.next(response as MoveMessage);
     } else if ("message" in response) {
+      console.log("Chat message");
       this.chatSubject.next(response as ChatMessage);
     } else if ("username1" in response) {
+      console.log("Board message");
       this.boardSubject.next(response as BoardMessage);
     }
-    console.log(event);
   }
 
   onClose() {
