@@ -9,13 +9,13 @@ export class FieldPipe implements PipeTransform {
     if (value == "WhiteKing") {
       return "⛁"
     }
-    if (value == "BlackKing") {
+    if (value == "RedKing") {
       return "⛃"
     }
-    if (value == "White") {
+    if (value == "WhitePawn") {
       return "⛀"
     }
-    if (value == "Black") {
+    if (value == "RedPawn") {
       return "⛂"
     }
     return "";
