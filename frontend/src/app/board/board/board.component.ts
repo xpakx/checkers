@@ -35,6 +35,10 @@ export class BoardComponent implements OnInit, OnDestroy {
 
   @Input() set gameId(value: number | undefined) {
     this._gameId = value;
+    if (value) {
+      this.websocket.connect();
+      this.websocket.subscribeGame(value);
+    }
   }
 
   constructor(private websocket: WebsocketService) { }
