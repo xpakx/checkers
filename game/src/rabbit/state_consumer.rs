@@ -150,6 +150,7 @@ pub enum Field {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GameResponse {
     pub status: GameStatus,
     pub my_turn: bool,
