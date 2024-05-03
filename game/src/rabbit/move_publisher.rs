@@ -9,6 +9,7 @@ use crate::{AppState, RuleSet, Color};
 use super::MOVES_EXCHANGE;
 
 #[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MoveEvent {
     pub game_id: usize,
     pub game_state: String,

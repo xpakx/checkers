@@ -9,6 +9,7 @@ use crate::AppState;
 use super::GAMES_EXCHANGE;
 
 #[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GameEvent {
     pub game_id: usize,
 }
