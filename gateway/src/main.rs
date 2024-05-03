@@ -28,9 +28,9 @@ async fn main() {
     services.push(ServiceConfig { path: String::from("/register"), host: String::from("http://localhost"), port: 8080 });
     services.push(ServiceConfig { path: String::from("/refresh"), host: String::from("http://localhost"), port: 8080 });
 
-    services.push(ServiceConfig { path: String::from("/app"), host: String::from("http://localhost"), port: 8080 });
-    services.push(ServiceConfig { path: String::from("/topic"), host: String::from("http://localhost"), port: 8080 });
-    services.push(ServiceConfig { path: String::from("/play"), host: String::from("http://localhost"), port: 8080 });
+    services.push(ServiceConfig { path: String::from("/app"), host: String::from("http://localhost"), port: 8081 });
+    services.push(ServiceConfig { path: String::from("/topic"), host: String::from("http://localhost"), port: 8081 });
+    services.push(ServiceConfig { path: String::from("/play"), host: String::from("http://localhost"), port: 8081 });
 
     let state = AppState { client, services };
     let origins = [config.frontend.parse().unwrap(),];

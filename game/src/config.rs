@@ -87,7 +87,7 @@ pub fn get_config() -> ConfigFin {
         port: match (config.port, env_config.port) {
             (_, Some(value)) => value,
             (Some(value), None) => value,
-            (None, None) => 8080,
+            (None, None) => 8081,
         },
         jwt_secret: match (config.jwt_secret, env_config.jwt_secret) {
             (_, Some(value)) => value,
