@@ -173,7 +173,21 @@ impl GameResponse {
             }
         })
         .collect();
-        let current_state = fields.chunks(size).map(|c| c.to_vec()).collect();
+        let current_state: Vec<Vec<Field>> = fields
+            .chunks(size/2)
+            .enumerate()
+            .map(|(i, chunk)| {
+                if i % 2 == 0 {
+                    chunk.iter()
+                        .flat_map(|c| [Field::Empty, c.clone()])
+                        .collect()
+                } else {
+                    chunk.iter()
+                        .flat_map(|c| [c.clone(), Field::Empty])
+                        .collect()
+                }
+            })
+            .collect();
         GameResponse {
             status: game.status,
             my_turn: false, // TODO
