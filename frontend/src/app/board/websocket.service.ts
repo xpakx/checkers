@@ -7,6 +7,7 @@ import { MoveRequest } from './dto/move-request';
 import { ChatMessage } from './dto/chat-message';
 import { SubscribeRequest } from './dto/subscribe-request';
 import { ChatRequest } from './dto/chat-request';
+import { AuthMessage } from './dto/auth-message';
 
 @Injectable({
   providedIn: 'root'
@@ -73,9 +74,10 @@ export class WebsocketService {
     console.log(`trying to subscribe game ${gameId}`);
     let request: SubscribeRequest = { path: "/subscribe", game_id: gameId };
     this.subject!.send(JSON.stringify(request));
-    // TODO: do not send this for every subscription
-    let authRequest = { path: "/auth", jwt: localStorage.getItem("token") };
-    this.subject!.send(JSON.stringify(authRequest));
+    if (!this.authenticated) {
+      let authRequest = { path: "/auth", jwt: localStorage.getItem("token") };
+      this.subject!.send(JSON.stringify(authRequest));
+    }
   }
 
   disconnect() {
@@ -95,11 +97,19 @@ export class WebsocketService {
     } else if ("username1" in response) {
       console.log("Board message");
       this.boardSubject.next(response as BoardMessage);
+    } else if ("authenticated" in response) {
+      this.onAuth(response as AuthMessage);
     }
   }
 
   onClose() {
     // TODO: reconnect?
     console.log("Closed");
+    this.authenticated = false;
+  }
+
+  onAuth(message: AuthMessage) {
+    this.authenticated = message.authenticated;
+    // TODO: refresh token
   }
 }
