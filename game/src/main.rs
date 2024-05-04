@@ -82,8 +82,8 @@ pub struct AppState {
     txupdates: broadcast::Sender<UpdateEvent>,
 }
 
-async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>, user: UserData) -> impl IntoResponse {
-    ws.on_upgrade(|socket| websocket(socket, state, user.username))
+async fn handle(ws: WebSocketUpgrade, State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    ws.on_upgrade(|socket| websocket(socket, state))
 }
 
 #[derive(Clone)]
@@ -93,12 +93,15 @@ pub struct Msg {
     user: Option<String>,
 }
 
-async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
+async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     let (mut sender, mut receiver) = stream.split();
 
     let mut rx = state.tx.subscribe();
 
     let room = Arc::new(RwLock::new(0));
+
+    let timestamped_name = format!("guest_{}", chrono::Utc::now().timestamp());
+    let username = Arc::new(RwLock::new(timestamped_name));
 
     let rm_send = room.clone();
     let u = username.clone();
@@ -106,7 +109,7 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
     let mut send_task = tokio::spawn(async move {
         while let Ok(msg) = rx.recv().await {
             if let Some(user) = msg.user {
-                if user != u {
+                if *u.read().unwrap() != user {
                     continue;
                 }
             }
@@ -132,6 +135,12 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
                 Ok(path) => path
             };
             let path = path.path;
+            let username = name
+                .try_read()
+                .map(|a| a.clone());
+            let Ok(username) = username else {
+                continue;
+            };
             match path.as_str() {
                 "/subscribe" => {
                     let room_request: SubscribeRequest = match serde_json::from_str(text.as_str())  {
@@ -155,7 +164,7 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
                             let game: Game = serde_json::from_str(game.as_str()).unwrap();
                             let msg = GameResponse::from(&game);
                             let msg = serde_json::to_string(&msg).unwrap();
-                            let msg = Msg { msg, room, user: Some(name.clone()) };
+                            let msg = Msg { msg, room, user: Some(username) };
                             let _ = state.tx.send(msg);
                         }
                     }
@@ -165,9 +174,9 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
                         Err(_) => continue,
                         Ok(request) => request,
                     };
-                    let res = make_move(state, &name, *rm.read().unwrap(), move_request);
+                    let res = make_move(state, &username, *rm.read().unwrap(), move_request);
                     if let Err(res) = res {
-                        let msg: Msg = Msg {room: *rm.read().unwrap(), msg: res, user: Some(name.clone()) };
+                        let msg: Msg = Msg {room: *rm.read().unwrap(), msg: res, user: Some(username) };
                         let _ = tx.send(msg);
                     }
                 },
@@ -176,7 +185,8 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>, username: String) {
                         Err(_) => continue,
                         Ok(request) => request,
                     };
-                    chat(state, &name, *rm.read().unwrap(), chat_request)},
+                    chat(state, &username, *rm.read().unwrap(), chat_request)
+                },
                 _ => continue,
             };
         }
