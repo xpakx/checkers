@@ -319,7 +319,7 @@ pub struct GameResponse {
     pub user_id: i64,
     pub opponent_id: Option<i64>,
     pub user: String,
-    pub opponent: Option<String>,
+    pub opponent: String,
     pub current_state: Vec<Vec<Field>>,
 }
 
@@ -368,7 +368,10 @@ impl GameResponse {
             user_id: game.user_id,
             opponent_id: game.opponent_id,
             user: game.user.clone(),
-            opponent: game.opponent.clone(),
+            opponent: match &game.opponent {
+                Some(username) => username.clone(),
+                None => "AI".into(),
+            },
             current_state,
         }
     }
