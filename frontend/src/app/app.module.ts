@@ -14,6 +14,7 @@ import { BoardComponent } from './board/board/board.component';
 import { FieldPipe } from './board/field.pipe';
 import { ButtonComponent } from './elements/button/button.component';
 import { ToastComponent } from './elements/toast/toast.component';
+import { MiniboardComponent } from './board/miniboard/miniboard.component';
 
 @NgModule({
   declarations: [
@@ -26,7 +27,8 @@ import { ToastComponent } from './elements/toast/toast.component';
     BoardComponent,
     FieldPipe,
     ButtonComponent,
-    ToastComponent
+    ToastComponent,
+    MiniboardComponent
   ],
   imports: [
     BrowserModule,

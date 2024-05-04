@@ -1,0 +1,49 @@
+.board {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--surface-02);
+}
+
+.board .row {
+    display: flex;
+    flex-direction: row;
+}
+
+.board .cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 10px;
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+    color: var(--white);
+}
+
+.board .cell.red {
+    color: var(--red);
+}
+
+.board .row:nth-child(odd) .cell:nth-child(odd) {
+    background-color: var(--white-cell-color);
+}
+
+.board .row:nth-child(odd) .cell:nth-child(even) {
+    background-color: var(--red-cell-color);
+}
+
+.board .row:nth-child(even) .cell:nth-child(even) {
+    background-color: var(--white-cell-color);
+}
+
+.board .row:nth-child(even) .cell:nth-child(odd) {
+    background-color: var(--red-cell-color);
+}
+
+.board .cell.illegal {
+    background-color: #ff9999;
+}
+
+.board .cell.last {
+    background-color: #0077cc;
+}

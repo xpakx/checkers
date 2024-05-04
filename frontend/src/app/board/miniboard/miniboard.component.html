@@ -1,7 +1,10 @@
-<div class="board">
-    <div class="row" *ngFor="let row of board; index as i">
+<div class="board" *ngIf="game">
+    <div class="row" *ngFor="let row of game.currentState; index as i">
         <div *ngFor="let cell of row; index as j" class="cell" [class.red]="cell=='RedPawn' || cell=='RedKing'" id="cell{{i}}{{j}}">
             {{cell | field}}
         </div>
     </div>
+</div>
+<div *ngIf="game">
+    {{ game.user }} vs {{ game.opponent}}
 </div>
