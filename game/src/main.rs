@@ -4,8 +4,7 @@ use serde::{Deserialize, Serialize};
 use tokio::sync::broadcast;
 use tracing::{debug, info};
 use std::sync::{Arc, Mutex, RwLock};
-use axum::{extract::{ws::{Message, WebSocket}, FromRef, FromRequestParts, State, WebSocketUpgrade}, http::{request::Parts, StatusCode}, response::{IntoResponse, Response}, routing::get, Router};
-use axum::async_trait;
+use axum::{extract::{ws::{Message, WebSocket}, State, WebSocketUpgrade}, response::IntoResponse, routing::get, Router};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use futures::{sink::SinkExt, stream::StreamExt};
 use jsonwebtoken::{decode, DecodingKey, Validation};
@@ -187,6 +186,27 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
                     };
                     chat(state, &username, *rm.read().unwrap(), chat_request)
                 },
+                "/auth" => {
+                    let auth_request: AuthRequest = match serde_json::from_str(text.as_str())  {
+                        Err(_) => continue,
+                        Ok(request) => request,
+                    };
+                    match token_to_username(auth_request.jwt, state) {
+                        Ok(username) => {
+                            *name.write().unwrap() = username.clone();
+                            let msg = AuthMessage {authenticated: true, username: username.clone(), error: None };
+                            let msg = serde_json::to_string(&msg).unwrap();
+                            let msg: Msg = Msg {room: *rm.read().unwrap(), msg, user: Some(username) };
+                            let _ = tx.send(msg);
+                        },
+                        Err(err) => {
+                            let msg = AuthMessage {authenticated: false, username: username.clone(), error: Some(err.to_string()) };
+                            let msg = serde_json::to_string(&msg).unwrap();
+                            let msg: Msg = Msg {room: *rm.read().unwrap(), msg, user: Some(username) };
+                            let _ = tx.send(msg);
+                        },
+                    };
+                },
                 _ => continue,
             };
         }
@@ -260,61 +280,38 @@ pub enum TokenError {
     MissingToken,
 }
 
-impl IntoResponse for TokenError {
-    fn into_response(self) -> Response {
-        // TODO
+impl TokenError {
+    fn to_string(self) -> String {
         match self {
-            TokenError::Expired => (StatusCode::FORBIDDEN, "Token expired"),
-            TokenError::Malformed => (StatusCode::FORBIDDEN, "Malformed token"),
-            TokenError::RefreshToken => (StatusCode::FORBIDDEN, "Cannot use refresh token for auth"),
-            TokenError::MissingToken => (StatusCode::FORBIDDEN, "No token"),
-        }
-        .into_response()
+            TokenError::Expired => "Token expired",
+            TokenError::Malformed => "Malformed token",
+            TokenError::RefreshToken => "Cannot use refresh token for auth",
+            TokenError::MissingToken => "No token",
+        }.to_string()
     }
 }
 
-#[async_trait]
-impl<S> FromRequestParts<S> for UserData
-where
-    S: Send + Sync,
-    Arc<AppState>: FromRef<S>,
-{
-    type Rejection = TokenError;
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let auth_header = parts.headers.get("Authorization").ok_or(TokenError::MissingToken)?;
-        let token = match auth_header.to_str() {
-            Ok(header_value) => {
-                if header_value.starts_with("Bearer ") {
-                    header_value.trim_start_matches("Bearer ").to_string()
-                } else {
-                    return Err(TokenError::Malformed);
-                }
-            }
-            Err(_) => return Err(TokenError::Malformed),
-        };
+fn token_to_username(token: String, state: Arc<AppState>) -> Result<String, TokenError> {
+    let claims = decode::<TokenClaims>(
+        &token,
+        &DecodingKey::from_secret(state.jwt.as_ref()),
+        &Validation::default(),
+        );
 
-        let state: Arc<AppState> = Arc::from_ref(state);
-        let claims = decode::<TokenClaims>(
-            &token,
-            &DecodingKey::from_secret(state.jwt.as_ref()),
-            &Validation::default(),
-            );
+    let claims = match claims {
+        Ok(c) => c,
+        Err(err) => match &err.kind() {
+            jsonwebtoken::errors::ErrorKind::ExpiredSignature => return Err(TokenError::Expired),
+            _ => return Err(TokenError::Malformed),
+        },
+    };
 
-        let claims = match claims {
-            Ok(c) => c,
-            Err(err) => match &err.kind() {
-                jsonwebtoken::errors::ErrorKind::ExpiredSignature => return Err(TokenError::Expired),
-                _ => return Err(TokenError::Malformed),
-            },
-        };
-
-        if claims.claims.refresh {
-            return Err(TokenError::RefreshToken);
-        }
-
-        return Ok(UserData { username: claims.claims.sub });
+    if claims.claims.refresh {
+        return Err(TokenError::RefreshToken);
     }
+
+    return Ok(claims.claims.sub);
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -405,4 +402,16 @@ struct ChatRequest {
 struct ChatMessage {
     player: String,
     message: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AuthRequest {
+    jwt: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct AuthMessage {
+    username: String,
+    authenticated: bool,
+    error: Option<String>,
 }
