@@ -305,6 +305,7 @@ impl Default for MoveModel {
 }
 
 #[derive(Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GameResponse {
     pub id: i64,
     pub invitation: InvitationStatus,
