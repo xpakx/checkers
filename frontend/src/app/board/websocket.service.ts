@@ -36,7 +36,7 @@ export class WebsocketService {
   }
 
   connect() {
-    this.subject = new WebSocket(this.apiUrl);
+    this.subject = new WebSocket(`${this.apiUrl}/ws`);
     this.subject.onmessage = (event: MessageEvent<any>) => this.onMessage(event);
     this.subject.onclose = () => this.onClose();
   }
@@ -73,6 +73,9 @@ export class WebsocketService {
     console.log(`trying to subscribe game ${gameId}`);
     let request: SubscribeRequest = { path: "/subscribe", game_id: gameId };
     this.subject!.send(JSON.stringify(request));
+    // TODO: do not send this for every subscription
+    let authRequest = { path: "/auth", jwt: localStorage.getItem("token") };
+    this.subject!.send(JSON.stringify(authRequest));
   }
 
   disconnect() {
