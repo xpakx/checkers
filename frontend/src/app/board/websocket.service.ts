@@ -8,6 +8,8 @@ import { ChatMessage } from './dto/chat-message';
 import { SubscribeRequest } from './dto/subscribe-request';
 import { ChatRequest } from './dto/chat-request';
 import { AuthMessage } from './dto/auth-message';
+import { AuthService } from '../auth/auth.service';
+import { AuthResponse } from '../auth/dto/auth-response';
 
 @Injectable({
   providedIn: 'root'
@@ -29,7 +31,7 @@ export class WebsocketService {
   private authenticated: boolean = false;
   private id?: number;
 
-  constructor() { 
+  constructor(private authService: AuthService) { 
     this.apiUrl = environment.apiUrl.replace(/^http/, 'ws');
     this.apiUrl = "ws://localhost:8081/ws";
     if (!this.apiUrl.startsWith("ws")) {
@@ -117,6 +119,33 @@ export class WebsocketService {
 
   onAuth(message: AuthMessage) {
     this.authenticated = message.authenticated;
-    // TODO: refresh token
+    if (message.error && message.error.indexOf("expired") > 0) {
+      let token = localStorage.getItem("refresh");
+      if (!token) {
+        this.clearStorage();
+        return;
+      }
+
+      this.authService.refreshToken({ "token": token })
+        .subscribe({
+          next: (response: AuthResponse) => this.onRefresh(response),
+          error: (_err: any) => this.clearStorage()
+        });
+    }
+  }
+
+  onRefresh(response: AuthResponse) {
+    localStorage.setItem('refresh', response.refreshToken.toString());
+    localStorage.setItem('token', response.token.toString());
+    localStorage.setItem('username', response.username.toString());
+    if (this.id) {
+      this.subscribeGame(this.id);
+    }
+  }
+
+  private clearStorage(): void {
+    localStorage.removeItem('refresh');
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
   }
 }
