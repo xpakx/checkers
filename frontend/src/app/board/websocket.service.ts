@@ -26,6 +26,9 @@ export class WebsocketService {
   private chatSubject: Subject<ChatMessage> = new Subject<ChatMessage>();
   chat$: Observable<ChatMessage> = this.chatSubject.asObservable();
 
+  private authenticated: boolean = false;
+  private id?: number;
+
   constructor() { 
     this.apiUrl = environment.apiUrl.replace(/^http/, 'ws');
     this.apiUrl = "ws://localhost:8081/ws";
@@ -59,6 +62,7 @@ export class WebsocketService {
   }
 
   subscribeGame(gameId: number) {
+    this.id = gameId;
     if (!this.subject) {
       return;
     }
@@ -103,9 +107,12 @@ export class WebsocketService {
   }
 
   onClose() {
-    // TODO: reconnect?
     console.log("Closed");
     this.authenticated = false;
+    if (this.id) {
+      this.connect();
+      this.subscribeGame(this.id);
+    }
   }
 
   onAuth(message: AuthMessage) {
