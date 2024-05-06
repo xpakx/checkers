@@ -2,7 +2,6 @@ import { Component, Input, OnDestroy, OnInit } from '@angular/core';
 import { WebsocketService } from '../websocket.service';
 import { BoardMessage } from '../dto/board-message';
 import { MoveMessage } from '../dto/move-message';
-import { ChatMessage } from '../dto/chat-message';
 import { Subscription } from 'rxjs';
 
 @Component({
@@ -26,12 +25,10 @@ export class BoardComponent implements OnInit, OnDestroy {
 
   ]
   _gameId?: number; 
-   private moveSub?: Subscription;
+  private moveSub?: Subscription;
   private boardSub?: Subscription;
-  private chatSub?: Subscription;
   game?: BoardMessage;
 
-  chat: ChatMessage[] = [];
 
   @Input() set gameId(value: number | undefined) {
     this._gameId = value;
@@ -49,16 +46,12 @@ export class BoardComponent implements OnInit, OnDestroy {
 
     this.moveSub = this.websocket.move$
     .subscribe((move: MoveMessage) => this.onMove(move));
-
-    this.chatSub = this.websocket.chat$
-    .subscribe((placement: ChatMessage) => this.onChat(placement));
   }
 
   ngOnDestroy() {
     this.websocket.disconnect();
     this.boardSub?.unsubscribe();
     this.moveSub?.unsubscribe();
-    this.chatSub?.unsubscribe();
   }
 
   onMove(move: MoveMessage) {
@@ -90,10 +83,6 @@ export class BoardComponent implements OnInit, OnDestroy {
     var colIndex = index % dim;
 
     return [rowIndex, colIndex];
-  }
-
-  onChat(message: ChatMessage) {
-    this.chat.push(message);
   }
 
   onBoard(board: BoardMessage) {
