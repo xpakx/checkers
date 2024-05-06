@@ -4,4 +4,10 @@
         <span class="text">{{msg.message}}</span>
     </div>
 
+<form [formGroup]="chatForm">
+  <input type = "text" name = "message" placeholder = "EnterMessage" formControlName = "message">
+  <button class="chat-btn" (click)="sendMessage()">Send</button>
+
+</form> 
+
 </div>
