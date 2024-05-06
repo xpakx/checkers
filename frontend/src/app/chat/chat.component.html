@@ -1,1 +1,7 @@
-<p>chat works!</p>
+<div class="chat">
+    <div class="message" *ngFor="let msg in chat">
+        <span class="username">{{msg.username}}</span>
+        <span class="text">{{msg.message}}</span>
+    </div>
+
+</div>
