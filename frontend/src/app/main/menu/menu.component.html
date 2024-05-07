@@ -9,3 +9,6 @@
 <div class="games">
     <app-game-list [games]="games" [active]="activeView" [requests]="requestView" (openGame)="open($event)"></app-game-list>
 </div>
+<div class="chat" *ngIf="gameId">
+    <app-chat></app-chat>
+</div>

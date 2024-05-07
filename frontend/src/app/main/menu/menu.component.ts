@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { Game } from '../dto/game';
 import { GameManagementService } from '../game-management.service';
 
@@ -17,6 +17,7 @@ export class MenuComponent implements OnInit {
 
   @Output() openGame: EventEmitter<number> = new EventEmitter<number>();
   @Output() openGameModal: EventEmitter<boolean> = new EventEmitter<boolean>();
+  @Input() gameId?: number;
 
   constructor(private gameService: GameManagementService) { }
 

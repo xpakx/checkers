@@ -14,7 +14,7 @@
 
 <div class="app">
     <app-board [gameId]="gameId"></app-board>
-    <app-menu (openGame)="open($event)" (openGameModal)="openGameModal($event)"></app-menu>
+    <app-menu (openGame)="open($event)" (openGameModal)="openGameModal($event)" [gameId]="gameId"></app-menu>
 </div>
 
 <app-toast></app-toast>
