@@ -98,6 +98,27 @@ impl Rules for BritishRules {
             _ => MoveVerification::Ambiguous,
         }
     }
+
+    fn is_game_won(&self, board: &BitBoard, color: &Color) -> bool {
+        let opponent = match color {
+            Color::Red => board.white_pawns | board.white_kings,
+            Color::White => board.red_pawns | board.red_kings,
+        };
+        if opponent.count_ones() == 0 {
+            return true;
+        };
+        let color = match color {
+            Color::Red => Color::White,
+            Color::White => Color::Red,
+        };
+        let jumpers = self.get_possible_jumpers(board, &color);
+        let movers = self.get_possible_movers(board, &color);
+        let movers = movers | jumpers;
+        if movers.count_ones() == 0 {
+            return true;
+        }
+        false
+    }
 }
 
 impl BritishRules {
