@@ -117,15 +117,30 @@ fn process_move(message: MoveEvent) -> EngineEvent {
         MoveVerification::Ok(_) => true,
         _ => false,
     };
-    let state = match (legality, &board) {
-        (MoveVerification::Ok(mov), Ok(board)) => board.apply_move(mov, &message.color).to_string(),
+
+    let new_board = match (legality, &board) {
+        (MoveVerification::Ok(mov), Ok(board)) => Some(board.apply_move(mov, &message.color)),
+        _ => None,
+    };
+
+    let state = match (legal, &new_board) {
+        (true, Some(board)) => board.to_string(),
         _ => message.game_state,
     };
+    let won = match (legal, &new_board) {
+        (true, Some(board)) => rules.is_game_won(board, &message.color),
+        _ => false,
+    };
+    let drawn = false;
+    let finished = won && drawn;
+
     EngineEvent {
         game_id: message.game_id,
         new_state: state,
         mov: message.mov,
         legal,
+        won,
+        finished,
         ..Default::default()
     }
 }
