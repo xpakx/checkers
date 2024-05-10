@@ -118,7 +118,7 @@ fn process_move(message: MoveEvent) -> EngineEvent {
         _ => false,
     };
     let state = match (legality, &board) {
-        (MoveVerification::Ok(mov), Ok(board)) => board.apply_move(mov, message.color).to_string(),
+        (MoveVerification::Ok(mov), Ok(board)) => board.apply_move(mov, &message.color).to_string(),
         _ => message.game_state,
     };
     EngineEvent {

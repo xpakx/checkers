@@ -89,13 +89,18 @@ fn process_ai_event(message: AiEvent) -> EngineEvent {
         AIType::Random => crate::ai::EngineType::Random,
     });
     let mov = engine.get_move(&board, &message.color, &rules);
-    let board = board.apply_move(mov, message.color);
+    let board = board.apply_move(mov, &message.color);
+    let won = rules.is_game_won(&board, &message.color);
+    let drawn = false;
+    let finished = won && drawn;
 
     EngineEvent {
         game_id: message.game_id,
         new_state: board.to_string(),
         ai: true,
         legal: true,
+        won,
+        finished,
         ..Default::default()
     }
 }

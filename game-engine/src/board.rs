@@ -41,7 +41,7 @@ fn without_moved(pre: u32, mov: u32) -> u32 {
 }
 
 impl BitBoard {
-    pub fn apply_move(&self, mov: u32, color: Color) -> BitBoard {
+    pub fn apply_move(&self, mov: u32, color: &Color) -> BitBoard {
         let empty: u32 = !(self.white_pawns | self.red_pawns | self.red_kings | self.white_kings);
         BitBoard { 
             white_pawns: match color {
