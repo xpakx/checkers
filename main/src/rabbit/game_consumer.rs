@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
+use lapin::{message::{Delivery, DeliveryResult}, options::BasicAckOptions, Channel};
 use ::serde::{Deserialize, Serialize};
 use tracing::{info, error};
 
@@ -27,69 +27,10 @@ pub fn set_game_delegate(consumer: lapin::Consumer, channel: Channel, state: Arc
                     }
                 };
 
-                let message = std::str::from_utf8(&delivery.data).unwrap();
-                let message: GameEvent = match serde_json::from_str(message) {
-                    Ok(msg) => msg,
-                    Err(err) => {
-                        error!("Failed to deserialize game event: {:?}", err);
-                        return; // TODO
-                    }
-                };
-                info!("Received message: {:?}", &message);
+                if let Ok(update) = get_event_from_message(&delivery) {
+                    process_message(update, state, channel).await;
+                }
 
-                let game = get_game_details(&state.db, &message.game_id).await;
-                
-                let response = match game {
-                    Err(_) => StateEvent { 
-                        game_id: message.game_id, 
-                        error: true,
-                        error_message: Some("".into()),
-                        ..Default::default()
-                    },
-                    Ok(game) => StateEvent {
-                        game_id: game.id,
-                        user: game.user,
-                        opponent: match game.opponent {
-                            None => "AI".into(),
-                            Some(opp) => opp,
-                        },
-                        user_turn: game.user_turn,
-                        user_starts: game.user_starts,
-                        current_state: game.current_state,
-                        game_type: match game.game_type {
-                            repository::GameType::AI => GameType::AI,
-                            repository::GameType::User => GameType::User,
-                        },
-                        ruleset: match game.ruleset {
-                            repository::RuleSet::British => RuleSet::British,
-                        },
-                        ai_type: match game.ai_type {
-                            repository::AIType::None => AIType::None,
-                            repository::AIType::Random => AIType::Random,
-                        },
-                        status: match game.status {
-                            repository::GameStatus::NotFinished => GameStatus::NotFinished,
-                            repository::GameStatus::Lost => GameStatus::Lost,
-                            repository::GameStatus::Won => GameStatus::Won,
-                            repository::GameStatus::Drawn => GameStatus::Drawn,
-                        },
-                        ..Default::default()
-                    },
-                };
-                info!("Response: {:?}", &response);
-                let response = serde_json::to_string(&response).unwrap();
-
-                if let Err(err) = channel
-                    .basic_publish(
-                        STATE_EXCHANGE,
-                        "state",
-                        Default::default(),
-                        response.into_bytes().as_slice(),
-                        Default::default(),
-                        )
-                        .await {
-                            error!("Failed to publish message to destination exchange: {:?}", err);
-                        };
 
                 delivery
                     .ack(BasicAckOptions::default())
@@ -157,4 +98,73 @@ impl Default for StateEvent {
             status: GameStatus::NotFinished,
         } 
     } 
+}
+
+fn get_event_from_message(delivery: &Delivery) -> Result<GameEvent, ()> {
+    let message = std::str::from_utf8(&delivery.data).unwrap();
+    let message: GameEvent = match serde_json::from_str(message) {
+        Ok(msg) => msg,
+        Err(err) => {
+            error!("Failed to deserialize game event: {:?}", err);
+            return Err(());
+        }
+    };
+    info!("Received message: {:?}", &message);
+    return Ok(message);
+}
+
+async fn process_message(message: GameEvent, state: Arc<AppState>, channel: Channel) {
+    let game = get_game_details(&state.db, &message.game_id).await;
+
+    let response = match game {
+        Err(_) => StateEvent { 
+            game_id: message.game_id, 
+            error: true,
+            error_message: Some("".into()),
+            ..Default::default()
+        },
+        Ok(game) => StateEvent {
+            game_id: game.id,
+            user: game.user,
+            opponent: match game.opponent {
+                None => "AI".into(),
+                Some(opp) => opp,
+            },
+            user_turn: game.user_turn,
+            user_starts: game.user_starts,
+            current_state: game.current_state,
+            game_type: match game.game_type {
+                repository::GameType::AI => GameType::AI,
+                repository::GameType::User => GameType::User,
+            },
+            ruleset: match game.ruleset {
+                repository::RuleSet::British => RuleSet::British,
+            },
+            ai_type: match game.ai_type {
+                repository::AIType::None => AIType::None,
+                repository::AIType::Random => AIType::Random,
+            },
+            status: match game.status {
+                repository::GameStatus::NotFinished => GameStatus::NotFinished,
+                repository::GameStatus::Lost => GameStatus::Lost,
+                repository::GameStatus::Won => GameStatus::Won,
+                repository::GameStatus::Drawn => GameStatus::Drawn,
+            },
+            ..Default::default()
+        },
+    };
+    info!("Response: {:?}", &response);
+    let response = serde_json::to_string(&response).unwrap();
+
+    if let Err(err) = channel
+        .basic_publish(
+            STATE_EXCHANGE,
+            "state",
+            Default::default(),
+            response.into_bytes().as_slice(),
+            Default::default(),
+            )
+            .await {
+                error!("Failed to publish message to destination exchange: {:?}", err);
+            };
 }

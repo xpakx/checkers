@@ -77,7 +77,6 @@ pub async fn requests(State(state): State<Arc<AppState>>, user: UserData) -> Res
     return Json(games).into_response()
 }
 
-// TODO
 pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, ValidatedJson(game): ValidatedJson<GameRequest>) -> Response {
     info!("Creating new game requested…");
     let username = user.username;
