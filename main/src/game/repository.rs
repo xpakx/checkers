@@ -3,7 +3,7 @@ use sqlx::{postgres::PgQueryResult, PgPool, Postgres};
 use tracing::debug;
 use chrono;
 
-use crate::game::error::GameError;
+use crate::game::error::{GameError, MoveError};
 
 pub async fn get_games(db: &PgPool, user_id: &i64) -> Result<Vec<GameDetails>, GameError> {
     sqlx::query_as::<Postgres, GameDetails>("SELECT g.*, a1.username AS user, a2.username AS opponent  
@@ -168,7 +168,7 @@ pub async fn update_game(db: &PgPool, game: GameModel) -> Result<PgQueryResult, 
         })
 }
 
-pub async fn save_move(db: &PgPool, mv: MoveModel) -> Result<i64, GameError> {
+pub async fn save_move(db: &PgPool, mv: MoveModel) -> Result<i64, MoveError> {
     let result = sqlx::query_scalar("INSERT INTO move 
                                     (game_id, current_state, created_at, x, y) 
                                     VALUES ($1, $2, $3, $4) 
@@ -182,11 +182,11 @@ pub async fn save_move(db: &PgPool, mv: MoveModel) -> Result<i64, GameError> {
         .map_err(|err: sqlx::Error| { 
             debug!("Cannot add move to db!");
             debug!("{}", err); 
-            GameError::from(err) // TODO
+            MoveError::from(err)
         });
 
     match result {
-        Ok(None) => Err(GameError::Unknown),
+        Ok(None) => Err(MoveError::Unknown),
         Ok(Some(id)) => Ok(id),
         Err(err) => Err(err),
     }

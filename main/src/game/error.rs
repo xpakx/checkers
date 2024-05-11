@@ -28,3 +28,30 @@ impl IntoResponse for GameError {
         .into_response()
     }
 }
+
+#[derive(Debug)]
+pub enum MoveError {
+    Unknown,
+    NoGame,
+}
+
+impl From<sqlx::Error> for MoveError {
+    fn from(error: sqlx::Error) -> Self {
+        let err = error.to_string();
+        if err.contains("fk_game_id") {
+            return MoveError::NoGame
+        }
+        return MoveError::Unknown
+    }
+}
+
+impl IntoResponse for MoveError {
+    fn into_response(self) -> Response {
+        // TODO
+        match self {
+            MoveError::Unknown => (StatusCode::INTERNAL_SERVER_ERROR, "Database error!"),
+            MoveError::NoGame => (StatusCode::NOT_FOUND, "Game not found!"),
+        }
+        .into_response()
+    }
+}
