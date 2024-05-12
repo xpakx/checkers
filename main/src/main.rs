@@ -59,19 +59,7 @@ async fn main() {
     let lapin_pool = cfg.create_pool(Some(deadpool_lapin::Runtime::Tokio1)).unwrap();
     tokio::spawn(async move {lapin_listen(lapin_pool.clone(), lapin_state).await});
 
-
-    let app = Router::new()
-        .route("/register", post(register))
-        .route("/authenticate", post(login))
-        .route("/refresh", post(refresh_token))
-        .route("/game", get(games))
-        .route("/game/archive", get(archive))
-        .route("/game/request", get(requests))
-        .route("/game", post(new_game))
-        .route("/game/:id/request", post(accept_request))
-        .route("/game/:id", get(game))
-        .route("/game/:id/history", get(moves))
-        .with_state(state);
+    let app = get_router(state);
 
     info!("Initializing router…");
     let host = "0.0.0.0";
@@ -84,6 +72,21 @@ async fn main() {
     axum::serve(listener, app)
         .await
         .unwrap();
+}
+
+pub fn get_router(state: Arc<AppState>) -> Router {
+    Router::new()
+        .route("/register", post(register))
+        .route("/authenticate", post(login))
+        .route("/refresh", post(refresh_token))
+        .route("/game", get(games))
+        .route("/game/archive", get(archive))
+        .route("/game/request", get(requests))
+        .route("/game", post(new_game))
+        .route("/game/:id/request", post(accept_request))
+        .route("/game/:id", get(game))
+        .route("/game/:id/history", get(moves))
+        .with_state(state)
 }
 
 pub struct AppState {
