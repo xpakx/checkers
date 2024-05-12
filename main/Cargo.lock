@@ -537,6 +537,7 @@ dependencies = [
  "testcontainers",
  "testcontainers-modules",
  "tokio",
+ "tower",
  "tracing",
  "tracing-subscriber",
  "validator",
