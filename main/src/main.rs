@@ -18,6 +18,9 @@ mod game;
 mod config;
 mod rabbit;
 
+#[cfg(test)]
+mod test;
+
 #[tokio::main]
 async fn main() {
     info!("Getting config…");
