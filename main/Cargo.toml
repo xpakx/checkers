@@ -24,6 +24,7 @@ tracing-subscriber = { version = "0.3.18", features = ["env-filter"] }
 validator = { version = "0.17.0", features = ["derive"] }
 
 [dev-dependencies]
+once_cell = "1.19.0"
 testcontainers = { version = "0.16.7", features = ["blocking"] }
 testcontainers-modules = { version = "0.4.2", features = ["postgres"] }
 tower = "0.4.13"

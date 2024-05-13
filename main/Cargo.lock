@@ -529,6 +529,7 @@ dependencies = [
  "deadpool-lapin",
  "jsonwebtoken",
  "lapin",
+ "once_cell",
  "rand",
  "serde",
  "serde_json",
