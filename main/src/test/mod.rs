@@ -1,27 +1,30 @@
-use std::{env, sync::Arc};
+use std::{env, sync::{Arc, Mutex}};
 
 use axum::{extract::Request, body::{Body, to_bytes}, http::StatusCode, Router};
+use once_cell::sync::Lazy;
 use tower::ServiceExt;
 
 use sqlx::{postgres::PgPoolOptions, PgPool};
-use testcontainers::runners::AsyncRunner;
+use testcontainers::{runners::SyncRunner, Container};
 use testcontainers_modules::postgres;
 
 use crate::{config::get_config, AppState};
 
-async fn config() {
+static DB: Lazy<Mutex<Container<postgres::Postgres>>> = Lazy::new(|| { config() });
+
+fn config() -> Mutex<Container<postgres::Postgres>> {
     let container = postgres::Postgres::default()
         .with_user("user")
         .with_password("password")
         .with_db_name("checkers")
-        .start().await;
+        .start();
 
-    println!("{:?}", container.ports().await);
+    println!("{:?}", container.ports());
 
     println!("Container started.");
-    let postgres_ip = container.get_host().await;
+    let postgres_ip = container.get_host();
     println!("Container host {}", postgres_ip);
-    let postgres_port = container.get_host_port_ipv4(5432).await;
+    let postgres_port = container.get_host_port_ipv4(5432);
     println!("Container port {}", postgres_port);
     let postgres_url = format!("postgresql://user:password@{}:{}/checkers", postgres_ip, postgres_port);
     println!("Container address {}", postgres_url);
@@ -31,6 +34,7 @@ async fn config() {
     env::set_var("JWT_SECRET", "secret");
     env::set_var("DB_URL", postgres_url);
     env::set_var("RABBIT_URL", "");
+    Mutex::new(container)
 }
 
 async fn get_app() -> (PgPool, Router) {
@@ -50,9 +54,16 @@ async fn get_app() -> (PgPool, Router) {
     (pool, crate::get_router(state))
 }
 
+#[test]
+fn test_container() {
+    let config = DB.lock().unwrap();
+    let host = config.get_host();
+    assert!(host.to_string().len() > 0);
+}
+
 #[tokio::test]
 async fn username_should_be_unique() {
-    config().await;
+    let _config = DB.lock().unwrap();
     let (db, app) = get_app().await;
 
     let _ = sqlx::query("INSERT INTO account (username, password) VALUES ($1, $2)")
