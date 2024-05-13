@@ -3,7 +3,7 @@ use std::{env, sync::Arc};
 use axum::{extract::Request, body::{Body, to_bytes}, http::StatusCode, Router};
 use tower::ServiceExt;
 
-use sqlx::postgres::PgPoolOptions;
+use sqlx::{postgres::PgPoolOptions, PgPool};
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres;
 
@@ -15,6 +15,9 @@ async fn config() {
         .with_password("password")
         .with_db_name("checkers")
         .start().await;
+
+    println!("{:?}", container.ports().await);
+
     println!("Container started.");
     let postgres_ip = container.get_host().await;
     println!("Container host {}", postgres_ip);
@@ -30,7 +33,7 @@ async fn config() {
     env::set_var("RABBIT_URL", "");
 }
 
-async fn get_app() -> Router {
+async fn get_app() -> (PgPool, Router) {
     let config = get_config();
 
     let pool = PgPoolOptions::new()
@@ -43,15 +46,22 @@ async fn get_app() -> Router {
         .run(&pool)
         .await
         .unwrap();
-    let state = Arc::from(AppState {jwt: config.jwt_secret, db: pool });
-    crate::get_router(state)
+    let state = Arc::from(AppState {jwt: config.jwt_secret, db: pool.clone() });
+    (pool, crate::get_router(state))
 }
 
 #[tokio::test]
 async fn username_should_be_unique() {
     config().await;
-    let response = get_app()
-        .await
+    let (db, app) = get_app().await;
+
+    let _ = sqlx::query("INSERT INTO account (username, password) VALUES ($1, $2)")
+        .bind("Test")
+        .bind("password")
+        .execute(&db)
+        .await;
+
+    let response = app
         .oneshot(
             Request::builder()
             .method("POST")
