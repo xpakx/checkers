@@ -120,7 +120,7 @@ fn get_game_from_message(delivery: &Delivery, state: Arc<AppState>) -> Result<Ga
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct StateEvent {
-    game_id: usize, // TODO
+    game_id: usize,
     error: bool,
     error_message: Option<String>,
     user: String,

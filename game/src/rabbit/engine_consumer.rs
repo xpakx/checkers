@@ -158,6 +158,7 @@ struct MoveWsMessage {
     mov: String,
     legal: bool,
     details: Option<MoveDetails>,
+    // TODO: status
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -165,7 +166,7 @@ struct MoveDetails {
     start: usize,
     end: usize,
     captures: Vec<usize>,
-    // TODO: status
+    promotion: bool,
 }
 
 fn get_move_message(id: usize, state_old: &String, state_new: &String, player: String, mov: String, color: &Color) -> Msg {
@@ -189,6 +190,19 @@ fn get_move_message(id: usize, state_old: &String, state_new: &String, player: S
         None => (0, 0),
     };
 
+    let promotion = match color {
+        Color::Red => {
+            let old = state_old.chars().filter(|&c| c == 'O').count();
+            let new = state_new.chars().filter(|&c| c == 'O').count();
+            new > old
+        },
+        Color::White => {
+            let old = state_old.chars().filter(|&c| c == 'X').count();
+            let new = state_new.chars().filter(|&c| c == 'X').count();
+            new > old
+        },
+    };
+
     let msg = MoveWsMessage { 
         player, 
         mov, 
@@ -197,6 +211,7 @@ fn get_move_message(id: usize, state_old: &String, state_new: &String, player: S
             start,
             end,
             captures,
+            promotion,
         }),
     };
     let msg = serde_json::to_string(&msg).unwrap();
