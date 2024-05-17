@@ -1,0 +1,117 @@
+version: '3.3'
+
+services:
+  main:
+    build: 
+      context: ./main/
+      dockerfile: Dockerfile
+    container_name: main
+    depends_on:
+      dbcheckers:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_started
+    expose:
+      - 8080
+    environment:
+      - DEBUG_LEVEL=info
+      - SERVER_PORT=8080
+      - JWT_SECRET=password
+      - DB_URL=postgresql://admin:password@dbcheckers:5432/checkers_dev
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672
+  dbcheckers:
+    image: 'postgres:13.1-alpine'
+    container_name: dbcheckers
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=checkers_dev
+    expose:
+      - 5432
+    healthcheck:
+      test: ['CMD', 'psql', '-U', 'admin', 'ships_dev', '-c', 'SELECT 1']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  game:
+    build: 
+      context: ./game
+      dockerfile: Dockerfile
+    container_name: game
+    depends_on:
+      - cache
+      - rabbitmq
+    expose:
+      - 8081
+    environment:
+      - DEBUG_LEVEL=info
+      - SERVER_PORT=8081
+      - JWT_SECRET=password
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672
+  gateway:
+    build: 
+      context: ./gateway/
+      dockerfile: Dockerfile
+    container_name: gateway
+    ports:
+      - "8000:8000"
+    depends_on: 
+      - game
+      - main
+    environment:
+      - DEBUG_LEVEL=info
+      - SERVER_PORT=8000
+      - FRONTEND=http://localhost:8001
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: 'rabbitmq'
+    ports:
+        - 5672:5672
+        - 15672:15672
+    healthcheck:
+        test: rabbitmq-diagnostics -q ping
+        interval: 30s
+        timeout: 30s
+        retries: 3
+  cache:
+    container_name: 'cache'
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6379:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass password
+    volumes: 
+      - cache:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "--raw", "incr", "ping" ]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+  frontend:
+    container_name: frontend
+    build: 
+      context: ./frontend/
+      dockerfile: Dockerfile
+    depends_on:
+      - gateway
+    ports:
+      - "8001:80"
+    environment:
+      - API_URL=gateway
+      - API_PORT=8000
+    command: /bin/sh -c "envsubst '$${API_URL} $${API_PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+  engine:
+    build: 
+      context: ./game-engine
+      dockerfile: Dockerfile
+    container_name: engine
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    expose:
+      - 8081
+    environment:
+      - RABBIT_URL=amqp://guest:guest@rabbitmq:5672
+volumes:
+  cache:
+    driver: local
