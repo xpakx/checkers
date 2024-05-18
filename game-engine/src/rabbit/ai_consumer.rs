@@ -77,6 +77,7 @@ pub enum RuleSet {
 #[derive(Serialize, Deserialize, Debug)]
 enum AIType {
     Random,
+    Counting,
 }
 
 // TODO
@@ -87,6 +88,7 @@ fn process_ai_event(message: AiEvent) -> EngineEvent {
     });
     let mut engine = get_engine(match message.ai_type {
         AIType::Random => crate::ai::EngineType::Random,
+        AIType::Counting => crate::ai::EngineType::Counting,
     });
     let mov = engine.get_move(&board, &message.color, &rules);
     let board = board.apply_move(mov, &message.color);

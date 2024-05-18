@@ -25,10 +25,12 @@ pub trait Engine {
 
 pub enum EngineType {
     Random,
+    Counting,
 }
 
 pub fn get_engine(engine: EngineType) -> Box<dyn Engine> {
     match engine {
         EngineType::Random => Box::new(random_engine::RandomEngine::new()),
+        EngineType::Counting => Box::new(counting_engine::CountingEngine::new()),
     }
 }
