@@ -10,6 +10,7 @@ pub trait Rules {
     fn get_definition(&self) -> RuleDefiniton;
     fn verify_move(&self, board: &BitBoard, mov: MoveBit, color: &Color) -> MoveVerification;
     fn is_game_won(&self, board: &BitBoard, color: &Color) -> bool;
+    fn is_game_drawn(&self, board: &BitBoard, color: &Color) -> bool;
 }
 
 pub enum RuleSet {

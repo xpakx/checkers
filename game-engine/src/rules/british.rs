@@ -119,6 +119,11 @@ impl Rules for BritishRules {
         }
         false
     }
+
+    fn is_game_drawn(&self, _board: &BitBoard, _color: &Color) -> bool {
+        // TODO
+        false
+    }
 }
 
 impl BritishRules {
