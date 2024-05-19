@@ -134,53 +134,65 @@ export class BoardComponent implements OnInit, OnDestroy {
   testMoveEnd(mover: number[], target: number[]): boolean {
     const field = this.board[mover[0]][mover[1]];
     if (field == "WhiteKing") {
-      // TODO
+      const row = target[0];
+      const column = target[1];
+      if (row+1 < this.board.length) {
+        if(this.testNeighboursInRow(row+1, column, "Red")) {
+          return false;
+        }
+      }
+      if (row-1 >= 0) {
+        if(this.testNeighboursInRow(row-1, column, "Red")) {
+          return false;
+        }
+      }
+      return true;
     } else if (field == "WhitePawn") {
-      const row = target[0]-1;
-      const column = target[0];
+      const row = target[0] - 1;
+      const column = target[1];
       if (row < 0) {
         return true;
       }
-
-      if (column+1 < this.board[row].length) {
-        const neighbour = this.board[row][column+1];
-        if (neighbour == "RedKing" || neighbour == "RedPawn") {
+      return !this.testNeighboursInRow(row, column, "Red");
+    } else if (field == "RedKing") {
+      const row = target[0];
+      const column = target[1];
+      if (row+1 < this.board.length) {
+        if(this.testNeighboursInRow(row+1, column, "White")) {
           return false;
         }
       }
-
-      if (column-1 >= 0) {
-        const neighbour = this.board[row][column-1];
-        if (neighbour == "RedKing" || neighbour == "RedPawn") {
+      if (row-1 >= 0) {
+        if(this.testNeighboursInRow(row-1, column, "White")) {
           return false;
         }
       }
       return true;
-    } else if (field == "RedKing") {
-      // TODO
     } else if (field == "RedPawn") {
       const row = target[0]+1;
-      const column = target[0];
+      const column = target[1];
       if (row >= this.board.length) {
         return true;
       }
-
-      if (column+1 < this.board[row].length) {
-        const neighbour = this.board[row][column+1];
-        if (neighbour == "WhiteKing" || neighbour == "WhitePawn") {
-          return false;
-        }
-      }
-
-      if (column-1 >= 0) {
-        const neighbour = this.board[row][column-1];
-        if (neighbour == "WhiteKing" || neighbour == "WhitePawn") {
-          return false;
-        }
-      }
-      return true;
+      return !this.testNeighboursInRow(row, column, "Red");
     }
     return true;
+  }
+
+  testNeighboursInRow(row: number, column: number, enemyColor: "Red" | "White") {
+    if (column + 1 < this.board[row].length) {
+      const neighbourRight = this.board[row][column + 1];
+      if (neighbourRight.startsWith(enemyColor)) {
+        return true;
+      }
+    }
+    if (column - 1 >= 0) {
+      const neighbourLeft = this.board[row][column - 1];
+      if (neighbourLeft.startsWith(enemyColor)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   testCapture(lastPosition: number[], newPosition: number[]): boolean {
@@ -193,7 +205,7 @@ export class BoardComponent implements OnInit, OnDestroy {
 
     const capturedRow = (lastPosition[0] + newPosition[0]) / 2;
     const capturedCol = (lastPosition[1] + newPosition[1]) / 2;
-    
+
     const field = this.board[capturedRow][capturedCol];
 
     if (field === "RedKing" || field == "RedPawn") { // TODO: for reds
