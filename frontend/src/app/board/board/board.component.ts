@@ -29,6 +29,10 @@ export class BoardComponent implements OnInit, OnDestroy {
   private boardSub?: Subscription;
   game?: BoardMessage;
 
+  moveStart?: number[] = undefined;
+  currentMove: number[][] = [];
+  currentMoveCapturing: boolean = false;
+
 
   @Input() set gameId(value: number | undefined) {
     this._gameId = value;
@@ -85,6 +89,12 @@ export class BoardComponent implements OnInit, OnDestroy {
     return [rowIndex, colIndex];
   }
 
+  mapToIndex(i: number, j: number): number {
+    // TODO: reversed board
+    var dim = this.board.length;
+    return i * dim + j;
+  }
+
   onBoard(board: BoardMessage) {
     console.log("Updating board");
     // TODO: errors?
@@ -93,4 +103,41 @@ export class BoardComponent implements OnInit, OnDestroy {
     this.board = board.currentState;
   }
 
+  onCell(i: number, j: number) {
+    if (!this.moveStart) {
+      this.moveStart = [i, j];
+      this.currentMove.push([i, j]);
+      return;
+    }
+
+    this.currentMove.push([i, j]);
+
+    if (this.testCapture.length < 2) {
+      return;
+    }
+
+    if (this.testCapture(this.currentMove[-1], this.currentMove[-2])) {
+      this.currentMoveCapturing = true;
+    }
+
+    if (this.testMoveEnd(i, j)) {
+      let move = this.currentMove
+        .map((p) => this.mapToIndex(p[0], p[1]))
+        .join(this.currentMoveCapturing ? "x" : "-");
+      this.currentMove = [];
+      this.currentMoveCapturing = false;
+      this.moveStart = undefined;
+      this.websocket.makeMove(move);
+    }
+  }
+
+  testMoveEnd(i: number, j: number): boolean {
+    // TODO
+    return true;
+  }
+
+  testCapture(lastPosition: number[], newPosition: number[]): boolean {
+    // TODO
+    return true;
+  }
 }
