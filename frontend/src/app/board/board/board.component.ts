@@ -120,7 +120,7 @@ export class BoardComponent implements OnInit, OnDestroy {
       this.currentMoveCapturing = true;
     }
 
-    if (this.testMoveEnd(i, j)) {
+    if (this.testMoveEnd(this.moveStart, [i, j])) {
       let move = this.currentMove
         .map((p) => this.mapToIndex(p[0], p[1]))
         .join(this.currentMoveCapturing ? "x" : "-");
@@ -131,13 +131,74 @@ export class BoardComponent implements OnInit, OnDestroy {
     }
   }
 
-  testMoveEnd(i: number, j: number): boolean {
-    // TODO
+  testMoveEnd(mover: number[], target: number[]): boolean {
+    const field = this.board[mover[0]][mover[1]];
+    if (field == "WhiteKing") {
+      // TODO
+    } else if (field == "WhitePawn") {
+      const row = target[0]-1;
+      const column = target[0];
+      if (row < 0) {
+        return true;
+      }
+
+      if (column+1 < this.board[row].length) {
+        const neighbour = this.board[row][column+1];
+        if (neighbour == "RedKing" || neighbour == "RedPawn") {
+          return false;
+        }
+      }
+
+      if (column-1 >= 0) {
+        const neighbour = this.board[row][column-1];
+        if (neighbour == "RedKing" || neighbour == "RedPawn") {
+          return false;
+        }
+      }
+      return true;
+    } else if (field == "RedKing") {
+      // TODO
+    } else if (field == "RedPawn") {
+      const row = target[0]+1;
+      const column = target[0];
+      if (row >= this.board.length) {
+        return true;
+      }
+
+      if (column+1 < this.board[row].length) {
+        const neighbour = this.board[row][column+1];
+        if (neighbour == "WhiteKing" || neighbour == "WhitePawn") {
+          return false;
+        }
+      }
+
+      if (column-1 >= 0) {
+        const neighbour = this.board[row][column-1];
+        if (neighbour == "WhiteKing" || neighbour == "WhitePawn") {
+          return false;
+        }
+      }
+      return true;
+    }
     return true;
   }
 
   testCapture(lastPosition: number[], newPosition: number[]): boolean {
-    // TODO
-    return true;
+    const rowDiff = Math.abs(newPosition[0] - lastPosition[0]);
+    const colDiff = Math.abs(newPosition[1] - lastPosition[1]);
+
+    if (rowDiff !== 2 || colDiff !== 2) {
+      return false;
+    }
+
+    const capturedRow = (lastPosition[0] + newPosition[0]) / 2;
+    const capturedCol = (lastPosition[1] + newPosition[1]) / 2;
+    
+    const field = this.board[capturedRow][capturedCol];
+
+    if (field === "RedKing" || field == "RedPawn") { // TODO: for reds
+      return true;
+    }
+    return false;
   }
 }
