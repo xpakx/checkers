@@ -7,7 +7,6 @@ pub struct CountingEngine {
     rng: ThreadRng,
 }
 
-#[allow(dead_code)]
 impl CountingEngine {
     pub fn new() -> CountingEngine {
         CountingEngine {
@@ -16,7 +15,6 @@ impl CountingEngine {
     }
 }
 
-#[allow(dead_code)]
 impl Engine for CountingEngine {
     fn get_name(&self) -> String {
         String::from("Counting Engine")
@@ -28,7 +26,6 @@ impl Engine for CountingEngine {
 
 }
 
-#[allow(dead_code)]
 impl CountingEngine {
     fn evaluate(&self, board: &BitBoard, color: &Color) -> i16 {
         let (kings, opponent_kings) = match color {
@@ -59,7 +56,7 @@ impl CountingEngine {
         let moves = self.generate_moves(board, rules);
         let next_player = self.next_color(color);
         let mut best_move = 0;
-        let mut best_result = -1;
+        let mut best_result = -200;
         for mov in moves {
             let new_board = board.apply_move(mov, color);
             let min = self.min_value(&new_board, &next_player, rules, depth);
@@ -78,7 +75,9 @@ impl CountingEngine {
         if rules.is_game_drawn(board, color) {
             return 0;
         }
-        // TODO: cut on depth==0
+        if depth == 0 {
+            return self.evaluate(board, color);
+        }
         let moves = self.generate_moves(board, rules);
         let next_player = self.next_color(color);
         let mut best_result = -200;
@@ -99,7 +98,9 @@ impl CountingEngine {
         if rules.is_game_drawn(board, color) {
             return 0;
         }
-        // TODO: cut on depth==0
+        if depth == 0 {
+            return -self.evaluate(board, color);
+        }
         let moves = self.generate_moves(board, rules);
         let next_player = self.next_color(color);
         let mut best_result = 200;
