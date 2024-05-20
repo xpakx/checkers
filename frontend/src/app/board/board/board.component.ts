@@ -133,50 +133,39 @@ export class BoardComponent implements OnInit, OnDestroy {
 
   testMoveEnd(mover: number[], target: number[]): boolean {
     const field = this.board[mover[0]][mover[1]];
+    const row = target[0];
+    const column = target[1];
+
     if (field == "WhiteKing") {
-      const row = target[0];
-      const column = target[1];
-      if (row+1 < this.board.length) {
-        if(this.testNeighboursInRow(row+1, column, "Red")) {
-          return false;
-        }
-      }
-      if (row-1 >= 0) {
-        if(this.testNeighboursInRow(row-1, column, "Red")) {
-          return false;
-        }
-      }
-      return true;
+      return !this.testNeighboursForKing(row, column, "Red");
     } else if (field == "WhitePawn") {
-      const row = target[0] - 1;
-      const column = target[1];
-      if (row < 0) {
+      if (row-1 < 0) {
         return true;
       }
-      return !this.testNeighboursInRow(row, column, "Red");
+      return !this.testNeighboursInRow(row-1, column, "Red");
     } else if (field == "RedKing") {
-      const row = target[0];
-      const column = target[1];
-      if (row+1 < this.board.length) {
-        if(this.testNeighboursInRow(row+1, column, "White")) {
-          return false;
-        }
-      }
-      if (row-1 >= 0) {
-        if(this.testNeighboursInRow(row-1, column, "White")) {
-          return false;
-        }
-      }
-      return true;
+      return !this.testNeighboursForKing(row, column, "White");
     } else if (field == "RedPawn") {
-      const row = target[0]+1;
-      const column = target[1];
-      if (row >= this.board.length) {
+      if (row+1 >= this.board.length) {
         return true;
       }
-      return !this.testNeighboursInRow(row, column, "Red");
+      return !this.testNeighboursInRow(row+1, column, "Red");
     }
     return true;
+  }
+
+  testNeighboursForKing(row: number, column: number, enemyColor: "Red" | "White"): boolean {
+      if (row + 1 < this.board.length) {
+        if (this.testNeighboursInRow(row + 1, column, enemyColor)) {
+          return true;
+        }
+      }
+      if (row-1 >= 0) {
+        if(this.testNeighboursInRow(row-1, column, enemyColor)) {
+          return true;
+        }
+      }
+      return false;
   }
 
   testNeighboursInRow(row: number, column: number, enemyColor: "Red" | "White") {
