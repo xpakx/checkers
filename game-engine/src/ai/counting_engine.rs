@@ -1,6 +1,6 @@
 use rand::{rngs::ThreadRng, thread_rng};
 
-use crate::{ai::Engine, board::BitBoard, rules::Rules, Color};
+use crate::{ai::Engine, board::BitBoard, rules::Rules, Color, BIT_MASK};
 
 #[allow(dead_code)]
 pub struct CountingEngine {
@@ -41,8 +41,33 @@ impl CountingEngine {
         strength - opponent_strength
     }
 
-    fn generate_moves(&self, _board: &BitBoard, _rules: &Box<dyn Rules>) -> Vec<u32> {
-        return vec![]; // TODO
+    fn generate_moves(&self, board: &BitBoard, rules: &Box<dyn Rules>, color: &Color) -> Vec<u32> {
+        let mut moves = vec![];
+        let jumpers = rules.get_possible_jumpers(board, color);
+        let any_jumper = jumpers.count_ones() > 0;
+        if any_jumper {
+            for i in 1..=32 {
+                let mover = jumpers & (BIT_MASK >> i-1);
+                if mover > 0 {
+                    let mut new_jumps = rules.get_jumps(board, mover, color);
+                    moves.append(&mut new_jumps);
+                }
+            }
+        }
+
+        if !any_jumper || !rules.get_definition().capture_forced {
+            let movers = rules.get_possible_movers(board, color);
+            if movers.count_ones() > 0 {
+                for i in 1..=32 {
+                    let mover = movers & (BIT_MASK >> i-1);
+                    if mover > 0 {
+                        let mut new_moves = rules.get_moves(board, mover, color);
+                        moves.append(&mut new_moves);
+                    }
+                }
+            }
+        }
+        return moves
     }
 
     fn next_color(&self, color: &Color) -> Color {
@@ -53,7 +78,7 @@ impl CountingEngine {
     }
 
     fn min_max_decision(&self, board: &BitBoard, color: &Color, rules: &Box<dyn Rules>, depth: u32) -> u32 {
-        let moves = self.generate_moves(board, rules);
+        let moves = self.generate_moves(board, rules, color);
         let next_player = self.next_color(color);
         let mut best_move = 0;
         let mut best_result = -200;
@@ -78,7 +103,7 @@ impl CountingEngine {
         if depth == 0 {
             return self.evaluate(board, color);
         }
-        let moves = self.generate_moves(board, rules);
+        let moves = self.generate_moves(board, rules, color);
         let next_player = self.next_color(color);
         let mut best_result = -200;
         for mov in moves {
@@ -101,7 +126,7 @@ impl CountingEngine {
         if depth == 0 {
             return -self.evaluate(board, color);
         }
-        let moves = self.generate_moves(board, rules);
+        let moves = self.generate_moves(board, rules, color);
         let next_player = self.next_color(color);
         let mut best_result = 200;
         for mov in moves {
