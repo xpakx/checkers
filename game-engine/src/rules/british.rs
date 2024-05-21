@@ -706,7 +706,26 @@ impl BritishRules {
         if boards.len() == 1 {
             return format!("{}x{}", start, end)
         };
-        // TODO ambigous candidates
+
+        // fast intermediate position
+        let mut diff = 0;
+        let mut m = 0;
+
+        for i in 0..boards.len() {
+            let brd = board.apply_move(boards[i].mov, color);
+            if brd.white_pawns == target.white_pawns && brd.white_kings == target.white_kings && brd.red_pawns == target.red_pawns && brd.red_kings == target.red_kings {
+                m = boards[i].intermediate_positions;
+                continue;
+            }
+            let diff = diff | boards[i].intermediate_positions;
+        }
+
+        let diff = (diff ^ m) & m;
+        if diff != 0 {
+            let intermediate = 32-diff.trailing_zeros()+1;
+            return format!("{}x{}x{}", start, intermediate, end)
+        }
+        // TODO there can still be ambigous candidates but these need info about order of moves
         "".into()
     }
 }
