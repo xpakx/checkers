@@ -1,6 +1,6 @@
-use std::collections::VecDeque;
+use std::{collections::VecDeque, vec};
 
-use crate::{board::{BitBoard, MoveBit}, rules::Rules, Color};
+use crate::{board::{BitBoard, MoveBit}, rules::Rules, Color, BIT_MASK};
 
 use super::{MoveVerification, RuleDefiniton};
 
@@ -674,6 +674,33 @@ impl BritishRules {
         }
     }
 
+    fn get_start_end(&self, board: &BitBoard, target: &BitBoard, color: &Color) -> (u32, u32, Vec<MoveCandidate>) {
+        let jumpers = self.get_possible_jumpers(board, color);
+
+        for i in 1..=32 {
+            let mover = jumpers & (BIT_MASK >> i-1);
+            if mover > 0 {
+                let jumps = self.get_jumps_with_positions(board, mover, color);
+                let jumps: Vec<MoveCandidate> = jumps
+                    .into_iter()
+                    .filter(|a| {
+                        let brd = board.apply_move(a.mov, color);
+                        brd.white_pawns == target.white_pawns && brd.white_kings == target.white_kings && brd.red_pawns == target.red_pawns && brd.red_kings == target.red_kings 
+                    })
+                .collect();
+                if jumps.len() > 0 {
+                    let start = mover;
+                    let end = match jumps[0].start_end.count_ones() {
+                        1 => start,
+                        _ => jumps[0].start_end ^ start,
+                    };
+                    return (start, end, jumps);
+                }
+            }
+        }
+        (0, 0, vec![])
+    }
+
     #[allow(dead_code, unused)]
     fn move_to_string(&self, board: &BitBoard, target: &BitBoard, color: &Color) -> String {
         let my_pre_move = match color {
@@ -688,7 +715,7 @@ impl BritishRules {
             Color::White => (target.red_pawns | target.red_kings) != (board.red_pawns | board.red_kings),
             Color::Red => (target.white_pawns | target.white_kings) != (board.white_pawns | board.white_kings),
         };
-        let start = my_pre_move & !my_post_move; // TODO start == end
+        let start = my_pre_move & !my_post_move;
         let end = !my_pre_move & my_post_move;
         
         let start_num = 32-start.trailing_zeros()+1;
@@ -697,7 +724,11 @@ impl BritishRules {
             return format!("{}-{}", start_num, end_num)
         };
 
-        let jumps = self.get_jumps_with_positions(board, start, color);
+        let (start, end, jumps) = match start {
+            0 => self.get_start_end(board, target, color),
+            _ => (start, end, self.get_jumps_with_positions(board, start, color)),
+        };
+
         let boards: Vec<MoveCandidate> = jumps
             .into_iter()
             .filter(|a| a.start_end == start | end)
