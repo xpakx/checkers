@@ -455,9 +455,6 @@ impl BritishRules {
 
         result
     }
-    ///
-    ///
-
 
     fn get_white_jumps_with_positions(&self, board: &BitBoard, start: u32) -> Vec<MoveCandidate> {
         let mut result = Vec::new();
@@ -675,6 +672,42 @@ impl BritishRules {
             Color::White => self.get_white_jumps_with_positions(board, mover),
             Color::Red => self.get_red_jumps_with_positions(board, mover),
         }
+    }
+
+    #[allow(dead_code, unused)]
+    fn move_to_string(&self, board: &BitBoard, target: &BitBoard, color: &Color) -> String {
+        let my_pre_move = match color {
+            Color::White => board.white_pawns | board.white_kings,
+            Color::Red => board.red_pawns | board.red_kings,
+        };
+        let my_post_move = match color {
+            Color::White => target.white_pawns | target.white_kings,
+            Color::Red => target.red_pawns | target.red_kings,
+        };
+        let captures = match color {
+            Color::White => (target.red_pawns | target.red_kings) != (board.red_pawns | board.red_kings),
+            Color::Red => (target.white_pawns | target.white_kings) != (board.white_pawns | board.white_kings),
+        };
+        let start = my_pre_move & !my_post_move; // TODO start == end
+        let end = !my_pre_move & my_post_move;
+        
+        let start_num = 32-start.trailing_zeros()+1;
+        let end_num = 32-end.trailing_zeros()+1;
+        if !captures {
+            return format!("{}-{}", start_num, end_num)
+        };
+
+        let jumps = self.get_jumps_with_positions(board, start, color);
+        let boards: Vec<MoveCandidate> = jumps
+            .into_iter()
+            .filter(|a| a.start_end == start | end)
+            .collect();
+
+        if boards.len() == 1 {
+            return format!("{}x{}", start, end)
+        };
+        // TODO ambigous candidates
+        "".into()
     }
 }
 
