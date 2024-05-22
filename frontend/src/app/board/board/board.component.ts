@@ -12,17 +12,14 @@ import { Subscription } from 'rxjs';
 export class BoardComponent implements OnInit, OnDestroy {
   board: ("WhiteKing" | "RedKing" | "WhitePawn" | "RedPawn" | "Empty")[][] = 
   [
-    ["Empty", "WhitePawn", "Empty", "WhitePawn", "Empty", "WhitePawn", "Empty", "WhitePawn"],
-    ["WhitePawn", "Empty", "WhitePawn", "Empty", "WhitePawn", "Empty", "WhitePawn", "Empty"], 
-    ["Empty", "WhitePawn", "Empty", "WhitePawn", "Empty", "WhitePawn", "Empty", "WhitePawn"],
-
     ["Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty"],
     ["Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty"],
-
-    ["RedPawn", "Empty", "RedPawn", "Empty", "RedPawn", "Empty", "RedPawn", "Empty"],
-    ["Empty", "RedPawn", "Empty", "RedPawn", "Empty", "RedPawn", "Empty", "RedPawn"],
-    ["RedPawn", "Empty", "RedPawn", "Empty", "RedPawn", "Empty", "RedPawn", "Empty"],
-
+    ["Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty"],
+    ["Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty"],
+    ["Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty"],
+    ["Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty"],
+    ["Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty"],
+    ["Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty", "Empty"],
   ]
   _gameId?: number; 
   private moveSub?: Subscription;
@@ -69,6 +66,8 @@ export class BoardComponent implements OnInit, OnDestroy {
     
     let start = this.mapIndex(details.start);
     let end = this.mapIndex(details.end);
+    console.log(start);
+    console.log(end);
     let type = this.board[start[0]][start[1]];
     this.board[start[0]][start[1]] = "Empty";
     this.board[end[0]][end[1]] = type; // TODO: promotion
@@ -80,19 +79,32 @@ export class BoardComponent implements OnInit, OnDestroy {
   }
 
   mapIndex(index: number): number[] {
-    var dim = this.board.length;
+    var dim = this.board.length/2;
 
     // TODO: reversed board
-    var rowIndex = Math.floor(index / dim);
-    var colIndex = index % dim;
+    var rowIndex = Math.floor((index-1) / dim);
+    var colIndex = (index-1) % dim;
+    if (rowIndex % 2 == 0) {
+      colIndex = colIndex*2+1;
+    } else {
+      colIndex = colIndex*2;
+    }
 
     return [rowIndex, colIndex];
   }
 
   mapToIndex(i: number, j: number): number {
-    // TODO: reversed board
-    var dim = this.board.length;
-    return i * dim + j;
+    var dim = this.board.length / 2;
+    var colIndex = 0;
+
+    if (i % 2 == 0) {
+      colIndex = (j - 1) / 2;
+    } else {
+      colIndex = j / 2;
+    }
+
+    var index = i * dim + colIndex + 1;
+    return index;
   }
 
   onBoard(board: BoardMessage) {
@@ -107,16 +119,21 @@ export class BoardComponent implements OnInit, OnDestroy {
     if (!this.moveStart) {
       this.moveStart = [i, j];
       this.currentMove.push([i, j]);
+      console.log(`starting move from ${this.moveStart}.`);
       return;
     }
 
     this.currentMove.push([i, j]);
+    console.log(`pushed ${[i, j]} to move.`);
+    console.log(`move at the moment: ${this.currentMove}`);
 
-    if (this.testCapture.length < 2) {
+    const len = this.currentMove.length
+    if (len < 2) {
       return;
     }
 
-    if (this.testCapture(this.currentMove[-1], this.currentMove[-2])) {
+    if (this.testCapture(this.currentMove[len-1], this.currentMove[len-2])) {
+      console.log("move with capture");
       this.currentMoveCapturing = true;
     }
 
