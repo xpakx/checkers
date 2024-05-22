@@ -53,6 +53,7 @@ async fn process_message(game: Game, state: Arc<AppState>, channel: Channel) {
     let _ = state.tx.send(msg);
 
     if !game.first_user_turn && game.game_type == GameType::AI {
+        debug!("Asking engine for AI move in game {}", game.id);
         let color = game.get_current_color();  // TODO
         let engine_event = AIMoveEvent {
             game_id: game.id,

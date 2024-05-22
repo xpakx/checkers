@@ -139,7 +139,7 @@ async fn init_lapin_listen(pool: deadpool_lapin::Pool, state: Arc<AppState>) -> 
         .queue_bind(
             ENGINE_QUEUE,
             ENGINE_EXCHANGE,
-            "engine_move",
+            "engine",
             QueueBindOptions::default(),
             FieldTable::default(),
             )
