@@ -1,6 +1,6 @@
-use std::{collections::VecDeque, vec};
+use std::collections::VecDeque;
 
-use crate::{board::{BitBoard, MoveBit}, rules::Rules, Color, BIT_MASK};
+use crate::{board::{BitBoard, MoveBit}, rules::Rules, Color};
 
 use super::{MoveVerification, RuleDefiniton};
 
@@ -122,6 +122,66 @@ impl Rules for BritishRules {
 
     fn is_game_drawn(&self, noncapture_moves: usize, nonpromoting_moves: usize) -> bool {
         noncapture_moves >= 40 || nonpromoting_moves >=40
+    }
+
+    #[allow(dead_code, unused)]
+    fn move_to_string(&self, board: &BitBoard, mov: u32, color: &Color) -> String {
+        let target = board.apply_move(mov, color);
+        let my_pre_move = match color {
+            Color::White => board.white_pawns | board.white_kings,
+            Color::Red => board.red_pawns | board.red_kings,
+        };
+        let my_post_move = match color {
+            Color::White => target.white_pawns | target.white_kings,
+            Color::Red => target.red_pawns | target.red_kings,
+        };
+        let captures = match color {
+            Color::White => (target.red_pawns | target.red_kings) != (board.red_pawns | board.red_kings),
+            Color::Red => (target.white_pawns | target.white_kings) != (board.white_pawns | board.white_kings),
+        };
+        let start = mov & my_pre_move;
+        let end = match mov.count_ones() {
+            1 => start,
+            _ => mov & !my_pre_move,
+        };
+        
+        let start_num = 32-start.trailing_zeros()+1;
+        let end_num = 32-end.trailing_zeros()+1;
+        if !captures {
+            return format!("{}-{}", start_num, end_num)
+        };
+
+        let jumps = self.get_jumps_with_positions(board, start, color);
+
+        let boards: Vec<MoveCandidate> = jumps
+            .into_iter()
+            .filter(|a| a.start_end == start | end)
+            .collect();
+
+        if boards.len() == 1 {
+            return format!("{}x{}", start, end)
+        };
+
+        // fast intermediate position
+        let mut diff = 0;
+        let mut m = 0;
+
+        for i in 0..boards.len() {
+            let brd = board.apply_move(boards[i].mov, color);
+            if brd.white_pawns == target.white_pawns && brd.white_kings == target.white_kings && brd.red_pawns == target.red_pawns && brd.red_kings == target.red_kings {
+                m = boards[i].intermediate_positions;
+                continue;
+            }
+            let diff = diff | boards[i].intermediate_positions;
+        }
+
+        let diff = (diff ^ m) & m;
+        if diff != 0 {
+            let intermediate = 32-diff.trailing_zeros()+1;
+            return format!("{}x{}x{}", start, intermediate, end)
+        }
+        // TODO there can still be ambigous candidates but these need info about order of moves
+        "".into()
     }
 }
 
@@ -671,92 +731,6 @@ impl BritishRules {
             Color::White => self.get_white_jumps_with_positions(board, mover),
             Color::Red => self.get_red_jumps_with_positions(board, mover),
         }
-    }
-
-    fn get_start_end(&self, board: &BitBoard, target: &BitBoard, color: &Color) -> (u32, u32, Vec<MoveCandidate>) {
-        let jumpers = self.get_possible_jumpers(board, color);
-
-        for i in 1..=32 {
-            let mover = jumpers & (BIT_MASK >> i-1);
-            if mover > 0 {
-                let jumps = self.get_jumps_with_positions(board, mover, color);
-                let jumps: Vec<MoveCandidate> = jumps
-                    .into_iter()
-                    .filter(|a| {
-                        let brd = board.apply_move(a.mov, color);
-                        brd.white_pawns == target.white_pawns && brd.white_kings == target.white_kings && brd.red_pawns == target.red_pawns && brd.red_kings == target.red_kings 
-                    })
-                .collect();
-                if jumps.len() > 0 {
-                    let start = mover;
-                    let end = match jumps[0].start_end.count_ones() {
-                        1 => start,
-                        _ => jumps[0].start_end ^ start,
-                    };
-                    return (start, end, jumps);
-                }
-            }
-        }
-        (0, 0, vec![])
-    }
-
-    #[allow(dead_code, unused)]
-    fn move_to_string(&self, board: &BitBoard, target: &BitBoard, color: &Color) -> String {
-        let my_pre_move = match color {
-            Color::White => board.white_pawns | board.white_kings,
-            Color::Red => board.red_pawns | board.red_kings,
-        };
-        let my_post_move = match color {
-            Color::White => target.white_pawns | target.white_kings,
-            Color::Red => target.red_pawns | target.red_kings,
-        };
-        let captures = match color {
-            Color::White => (target.red_pawns | target.red_kings) != (board.red_pawns | board.red_kings),
-            Color::Red => (target.white_pawns | target.white_kings) != (board.white_pawns | board.white_kings),
-        };
-        let start = my_pre_move & !my_post_move;
-        let end = !my_pre_move & my_post_move;
-        
-        let start_num = 32-start.trailing_zeros()+1;
-        let end_num = 32-end.trailing_zeros()+1;
-        if !captures {
-            return format!("{}-{}", start_num, end_num)
-        };
-
-        let (start, end, jumps) = match start {
-            0 => self.get_start_end(board, target, color),
-            _ => (start, end, self.get_jumps_with_positions(board, start, color)),
-        };
-
-        let boards: Vec<MoveCandidate> = jumps
-            .into_iter()
-            .filter(|a| a.start_end == start | end)
-            .collect();
-
-        if boards.len() == 1 {
-            return format!("{}x{}", start, end)
-        };
-
-        // fast intermediate position
-        let mut diff = 0;
-        let mut m = 0;
-
-        for i in 0..boards.len() {
-            let brd = board.apply_move(boards[i].mov, color);
-            if brd.white_pawns == target.white_pawns && brd.white_kings == target.white_kings && brd.red_pawns == target.red_pawns && brd.red_kings == target.red_kings {
-                m = boards[i].intermediate_positions;
-                continue;
-            }
-            let diff = diff | boards[i].intermediate_positions;
-        }
-
-        let diff = (diff ^ m) & m;
-        if diff != 0 {
-            let intermediate = 32-diff.trailing_zeros()+1;
-            return format!("{}x{}x{}", start, intermediate, end)
-        }
-        // TODO there can still be ambigous candidates but these need info about order of moves
-        "".into()
     }
 }
 

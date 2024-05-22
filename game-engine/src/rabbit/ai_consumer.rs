@@ -94,6 +94,8 @@ fn process_ai_event(message: AiEvent) -> EngineEvent {
     });
     let mov = engine.get_move(&board, &message.color, &rules);
     println!("move: {:032b}", mov);
+    let move_string = rules.move_to_string(&board, mov, &message.color);
+    println!("move string: {}", move_string);
     let board = board.apply_move(mov, &message.color);
     println!("white pawns: {:032b}", board.white_pawns);
     println!("red pawns: {:032b}", board.red_pawns);
@@ -108,6 +110,7 @@ fn process_ai_event(message: AiEvent) -> EngineEvent {
         legal: true,
         won,
         finished,
+        mov: move_string,
         ..Default::default()
     }
 }

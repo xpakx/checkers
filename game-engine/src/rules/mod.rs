@@ -11,6 +11,7 @@ pub trait Rules {
     fn verify_move(&self, board: &BitBoard, mov: MoveBit, color: &Color) -> MoveVerification;
     fn is_game_won(&self, board: &BitBoard, color: &Color) -> bool;
     fn is_game_drawn(&self, noncapture_moves: usize, nonpromoting_moves: usize) -> bool;
+    fn move_to_string(&self, board: &BitBoard, mov: u32, color: &Color) -> String;
 }
 
 pub enum RuleSet {
