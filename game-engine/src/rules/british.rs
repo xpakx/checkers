@@ -145,8 +145,8 @@ impl Rules for BritishRules {
             _ => mov & !my_pre_move,
         };
         
-        let start_num = 32-start.trailing_zeros()+1;
-        let end_num = 32-end.trailing_zeros()+1;
+        let start_num = 32-start.trailing_zeros();
+        let end_num = 32-end.trailing_zeros();
         if !captures {
             return format!("{}-{}", start_num, end_num)
         };
@@ -177,7 +177,7 @@ impl Rules for BritishRules {
 
         let diff = (diff ^ m) & m;
         if diff != 0 {
-            let intermediate = 32-diff.trailing_zeros()+1;
+            let intermediate = 32-diff.trailing_zeros();
             return format!("{}x{}x{}", start, intermediate, end)
         }
         // TODO there can still be ambigous candidates but these need info about order of moves
