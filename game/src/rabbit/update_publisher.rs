@@ -17,6 +17,8 @@ pub struct UpdateEvent {
     pub user_turn: bool,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub last_move: String,
+    pub noncapture_moves: usize,
+    pub nonpromoting_moves: usize,
 }
 
 pub fn update_publisher(channel: Channel, state: Arc<AppState>) -> tokio::task::JoinHandle<()> {

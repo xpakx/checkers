@@ -107,6 +107,8 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
         user_turn: game.first_user_turn,
         last_move: event.mov,
         timestamp: chrono::Utc::now(),
+        nonpromoting_moves: game.nonpromoting_moves,
+        noncapture_moves: game.noncapture_moves,
     };
     let _ = state.txupdates.send(event);
 
@@ -117,6 +119,8 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
             ruleset: game.ruleset,
             ai_type: game.ai_type,
             color,
+            noncapture_moves: game.noncapture_moves,
+            nonpromoting_moves: game.nonpromoting_moves,
         };
         let engine_event = serde_json::to_string(&engine_event).unwrap();
         if let Err(err) = channel

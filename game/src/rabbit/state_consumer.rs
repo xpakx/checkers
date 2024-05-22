@@ -60,6 +60,8 @@ async fn process_message(game: Game, state: Arc<AppState>, channel: Channel) {
             ruleset: game.ruleset,
             ai_type: game.ai_type,
             color,
+            noncapture_moves: game.noncapture_moves,
+            nonpromoting_moves: game.nonpromoting_moves,
         };
         let engine_event = serde_json::to_string(&engine_event).unwrap();
         if let Err(err) = channel
@@ -114,8 +116,8 @@ fn get_game_from_message(delivery: &Delivery, state: Arc<AppState>) -> Result<Ga
         ruleset: message.ruleset,
         status: message.status,
         first_user_starts: message.user_starts,
-        noncapture_moves: 0, //TODO
-        nonpromoting_moves: 0, //TODO
+        noncapture_moves: message.noncapture_moves,
+        nonpromoting_moves: message.nonpromoting_moves,
     })
 }
 
@@ -134,6 +136,8 @@ struct StateEvent {
     ruleset: RuleSet,
     ai_type: AIType,
     status: GameStatus,
+    noncapture_moves: usize,
+    nonpromoting_moves: usize,
 }
 
 
@@ -144,6 +148,8 @@ pub struct AIMoveEvent {
     pub ruleset: RuleSet,
     pub ai_type: AIType,
     pub color: Color,
+    pub noncapture_moves: usize,
+    pub nonpromoting_moves: usize,
 }
 
 #[derive(Serialize, Deserialize, Clone)]

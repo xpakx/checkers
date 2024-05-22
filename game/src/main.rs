@@ -218,7 +218,6 @@ async fn websocket(stream: WebSocket, state: Arc<AppState>) {
     };
 }
 
-
 fn make_move(state: Arc<AppState>, username: &String, room: usize, request: MoveRequest) -> Result<(), String> {
     let game_db: Option<String> = state.redis
         .lock()
@@ -256,6 +255,8 @@ fn make_move(state: Arc<AppState>, username: &String, room: usize, request: Move
         mov: request.mov,
         ruleset: game.ruleset,
         color, 
+        noncapture_moves: game.noncapture_moves,
+        nonpromoting_moves: game.nonpromoting_moves,
     };
     let _ = state.txmoves.send(event);
     Ok(())

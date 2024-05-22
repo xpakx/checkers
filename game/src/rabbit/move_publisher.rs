@@ -17,6 +17,8 @@ pub struct MoveEvent {
     pub mov: String,
     pub ruleset: RuleSet,
     pub color: Color,
+    pub noncapture_moves: usize,
+    pub nonpromoting_moves: usize,
 }
 
 pub fn move_publisher(channel: Channel, state: Arc<AppState>) -> tokio::task::JoinHandle<()> {
