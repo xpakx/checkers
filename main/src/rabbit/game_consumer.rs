@@ -64,6 +64,8 @@ struct StateEvent {
     ruleset: RuleSet,
     ai_type: AIType,
     status: GameStatus,
+    noncapture_moves: i64,
+    nonpromoting_moves: i64,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -96,6 +98,8 @@ impl Default for StateEvent {
             ruleset: RuleSet::British,
             ai_type: AIType::None,
             status: GameStatus::NotFinished,
+            noncapture_moves: 0,
+            nonpromoting_moves: 0,
         } 
     } 
 }
@@ -150,6 +154,8 @@ async fn process_message(message: GameEvent, state: Arc<AppState>, channel: Chan
                 repository::GameStatus::Won => GameStatus::Won,
                 repository::GameStatus::Drawn => GameStatus::Drawn,
             },
+            nonpromoting_moves: game.nonpromoting_moves,
+            noncapture_moves: game.noncapture_moves,
             ..Default::default()
         },
     };

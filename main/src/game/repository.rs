@@ -153,12 +153,14 @@ pub async fn get_moves(db: &PgPool, id: &i64) -> Result<Vec<MoveModel>, GameErro
 
 pub async fn update_game(db: &PgPool, game: GameModel) -> Result<PgQueryResult, GameError> {
     sqlx::query("UPDATE game 
-                SET status = ?2, current_state = ?3, user_turn = ?4 
+                SET status = ?2, current_state = ?3, user_turn = ?4, nonpromoting_moves = ?5, noncapture_moves = $6  
                 WHERE id = ?1")
         .bind(&game.id)
         .bind(&game.status)
         .bind(&game.current_state)
         .bind(&game.user_turn)
+        .bind(&game.nonpromoting_moves)
+        .bind(&game.noncapture_moves)
         .execute(db)
         .await
         .map_err(|err: sqlx::Error| { 
@@ -244,6 +246,8 @@ pub struct GameModel {
     pub user_turn: bool,
     pub user_id: i64,
     pub opponent_id: Option<i64>,
+    pub noncapture_moves: i64,
+    pub nonpromoting_moves: i64,
 }
 
 impl Default for GameModel {
@@ -260,6 +264,8 @@ impl Default for GameModel {
             user_turn: true,
             user_id: 0,
             opponent_id: None,
+            noncapture_moves: 0,
+            nonpromoting_moves: 0,
         } 
     } 
 }
@@ -280,6 +286,8 @@ pub struct GameDetails {
     pub opponent_id: Option<i64>,
     pub user: String,
     pub opponent: Option<String>,
+    pub noncapture_moves: i64,
+    pub nonpromoting_moves: i64,
 }
 
 #[derive(Serialize, Deserialize, sqlx::FromRow)]

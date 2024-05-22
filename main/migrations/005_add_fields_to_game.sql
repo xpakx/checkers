@@ -1,0 +1,3 @@
+ALTER TABLE game
+ADD COLUMN noncapture_moves INT DEFAULT 0 NOT NULL,
+ADD COLUMN nonpromoting_moves INT DEFAULT 0 NOT NULL;

@@ -45,6 +45,8 @@ struct UpdateEvent {
     user_turn: bool,
     timestamp: chrono::DateTime<chrono::Utc>,
     last_move: String,
+    noncapture_moves: i64,
+    nonpromoting_moves: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,6 +80,8 @@ async fn process_message(message: UpdateEvent, state: Arc<AppState>) {
             },
             current_state: message.current_state.clone(),
             user_turn: message.user_turn,
+            noncapture_moves: message.noncapture_moves,
+            nonpromoting_moves: message.nonpromoting_moves,
             ..Default::default()
         };
         if let Ok(_) = update_game(&state.db, game).await {
