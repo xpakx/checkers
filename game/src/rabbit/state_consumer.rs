@@ -143,6 +143,7 @@ struct StateEvent {
 
 
 #[derive(Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AIMoveEvent {
     pub game_id: usize,
     pub game_state: String,
