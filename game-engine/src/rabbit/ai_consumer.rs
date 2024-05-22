@@ -93,7 +93,10 @@ fn process_ai_event(message: AiEvent) -> EngineEvent {
         AIType::Counting => crate::ai::EngineType::Counting,
     });
     let mov = engine.get_move(&board, &message.color, &rules);
+    println!("move: {:032b}", mov);
     let board = board.apply_move(mov, &message.color);
+    println!("white pawns: {:032b}", board.white_pawns);
+    println!("red pawns: {:032b}", board.red_pawns);
     let won = rules.is_game_won(&board, &message.color);
     let drawn = !won && rules.is_game_drawn(message.noncapture_moves, message.nonpromoting_moves);
     let finished = won || drawn;
