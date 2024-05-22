@@ -118,7 +118,10 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
             game_state: game.current_state,
             ruleset: game.ruleset,
             ai_type: game.ai_type,
-            color,
+            color: match color {
+                Color::Red => Color::White,
+                Color::White => Color::Red,
+            },
             noncapture_moves: game.noncapture_moves,
             nonpromoting_moves: game.nonpromoting_moves,
         };
