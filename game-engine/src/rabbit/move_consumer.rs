@@ -65,6 +65,8 @@ struct MoveEvent {
     mov: String,
     ruleset: RuleSet,
     color: Color,
+    noncapture_moves: usize,
+    nonpromoting_moves: usize,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -131,8 +133,8 @@ fn process_move(message: MoveEvent) -> EngineEvent {
         (true, Some(board)) => rules.is_game_won(board, &message.color),
         _ => false,
     };
-    let drawn = false;
-    let finished = won && drawn;
+    let drawn = !won && rules.is_game_drawn(message.noncapture_moves, message.nonpromoting_moves);
+    let finished = won || drawn;
 
     EngineEvent {
         game_id: message.game_id,

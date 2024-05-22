@@ -67,6 +67,8 @@ struct AiEvent {
     ruleset: RuleSet,
     ai_type: AIType,
     color: Color,
+    noncapture_moves: usize,
+    nonpromoting_moves: usize,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -93,8 +95,8 @@ fn process_ai_event(message: AiEvent) -> EngineEvent {
     let mov = engine.get_move(&board, &message.color, &rules);
     let board = board.apply_move(mov, &message.color);
     let won = rules.is_game_won(&board, &message.color);
-    let drawn = false;
-    let finished = won && drawn;
+    let drawn = !won && rules.is_game_drawn(message.noncapture_moves, message.nonpromoting_moves);
+    let finished = won || drawn;
 
     EngineEvent {
         game_id: message.game_id,

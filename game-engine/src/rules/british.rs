@@ -120,9 +120,8 @@ impl Rules for BritishRules {
         false
     }
 
-    fn is_game_drawn(&self, _board: &BitBoard, _color: &Color) -> bool {
-        // TODO
-        false
+    fn is_game_drawn(&self, noncapture_moves: usize, nonpromoting_moves: usize) -> bool {
+        noncapture_moves >= 40 || nonpromoting_moves >=40
     }
 }
 

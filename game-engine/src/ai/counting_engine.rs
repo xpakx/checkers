@@ -97,7 +97,7 @@ impl CountingEngine {
         if rules.is_game_won(board, color) {
             return -200;
         }
-        if rules.is_game_drawn(board, color) {
+        if rules.is_game_drawn(0, 0) { //TODO
             return 0;
         }
         if depth == 0 {
@@ -120,7 +120,7 @@ impl CountingEngine {
         if rules.is_game_won(board, color) {
             return 200;
         }
-        if rules.is_game_drawn(board, color) {
+        if rules.is_game_drawn(0, 0) { //TODO
             return 0;
         }
         if depth == 0 {
