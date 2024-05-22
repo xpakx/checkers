@@ -114,6 +114,8 @@ fn get_game_from_message(delivery: &Delivery, state: Arc<AppState>) -> Result<Ga
         ruleset: message.ruleset,
         status: message.status,
         first_user_starts: message.user_starts,
+        noncapture_moves: 0, //TODO
+        nonpromoting_moves: 0, //TODO
     })
 }
 

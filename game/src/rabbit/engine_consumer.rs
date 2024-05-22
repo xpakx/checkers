@@ -81,6 +81,15 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
     let color = game.get_current_color();
     let user = game.get_current_user();
     game.first_user_turn = !game.first_user_turn;
+    game.noncapture_moves = match have_captures(&old_state, &(game.current_state), &color) {
+        true => 0,
+        false => game.noncapture_moves+1,
+    };
+    game.nonpromoting_moves = match have_promotions(&old_state, &(game.current_state), &color) {
+        true => 0,
+        false => game.nonpromoting_moves+1,
+    };
+
 
     let game_data = serde_json::to_string(&game).unwrap();
     let _: () = state.redis
@@ -167,6 +176,26 @@ struct MoveDetails {
     end: usize,
     captures: Vec<usize>,
     promotion: bool,
+}
+
+fn have_captures(state_old: &String, state_new: &String, color: &Color) -> bool {
+    let to_find = match color {
+        Color::Red => 'x',
+        Color::White => 'o',
+    };
+    let old: usize = state_old.to_lowercase().chars().filter(|c| c == &to_find).count();
+    let new: usize = state_new.to_lowercase().chars().filter(|c| c == &to_find).count();
+    old != new
+}
+
+fn have_promotions(state_old: &String, state_new: &String, color: &Color) -> bool {
+    let to_find = match color {
+        Color::Red => 'O',
+        Color::White => 'X',
+    };
+    let old: usize = state_old.chars().filter(|c| c == &to_find).count();
+    let new: usize = state_new.chars().filter(|c| c == &to_find).count();
+    old < new
 }
 
 fn get_move_message(id: usize, state_old: &String, state_new: &String, player: String, mov: String, color: &Color) -> Msg {

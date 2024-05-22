@@ -341,6 +341,8 @@ pub struct Game {
     pub game_type: GameType,
     pub ruleset: RuleSet,
     pub status: GameStatus,
+    pub noncapture_moves: usize,
+    pub nonpromoting_moves: usize,
 }
 
 impl Game {
