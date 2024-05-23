@@ -34,6 +34,10 @@ export class BoardComponent implements OnInit, OnDestroy {
 
   @Input() set gameId(value: number | undefined) {
     this._gameId = value;
+    this.moveStart = undefined;
+    this.currentMove = [];
+    this.currentMoveCapturing = false
+    this.myTurn = false;
     if (value) {
       this.websocket.connect();
       this.websocket.subscribeGame(value);
