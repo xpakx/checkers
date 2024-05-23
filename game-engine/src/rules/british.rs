@@ -142,7 +142,7 @@ impl Rules for BritishRules {
         let start = mov & my_pre_move;
         let end = match mov.count_ones() {
             1 => start,
-            _ => mov & !my_pre_move,
+            _ => !my_pre_move & my_post_move,
         };
         
         let start_num = 32-start.trailing_zeros();
