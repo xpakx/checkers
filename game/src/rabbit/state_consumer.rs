@@ -163,7 +163,6 @@ pub enum Field {
 #[serde(rename_all = "camelCase")]
 pub struct GameResponse {
     pub status: GameStatus,
-    pub my_turn: bool,
     pub user_turn: bool,
     pub username1: String,
     pub username2: String,
@@ -200,7 +199,6 @@ impl GameResponse {
             .collect();
         GameResponse {
             status: game.status,
-            my_turn: false, // TODO
             user_turn: game.first_user_turn,
             username1: game.user.clone(),
             username2: game.opponent.clone(),
