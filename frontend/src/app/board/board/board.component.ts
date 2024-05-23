@@ -153,7 +153,7 @@ export class BoardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    let capture = this.testCapture(this.currentMove[len-1], this.currentMove[len-2]);
+    let capture = this.testCapture(this.currentMove[len-2], this.currentMove[len-1]);
     if (capture) {
       console.log("move with capture");
       this.currentMoveCapturing = true;
