@@ -30,6 +30,7 @@ export class WebsocketService {
 
   private authenticated: boolean = false;
   private id?: number;
+  private subscriptionWaiting: boolean = false;
 
   constructor(private authService: AuthService) { 
     this.apiUrl = environment.apiUrl.replace(/^http/, 'ws');
@@ -48,6 +49,7 @@ export class WebsocketService {
     this.subject = new WebSocket(`${this.apiUrl}/ws`);
     this.subject.onmessage = (event: MessageEvent<any>) => this.onMessage(event);
     this.subject.onclose = () => this.onClose();
+    this.subject.onopen = () => this.doAuth();
   }
 
   makeMove(move: String) {
@@ -71,21 +73,29 @@ export class WebsocketService {
     if (!this.subject) {
       return;
     }
-    if (this.subject.readyState == WebSocket.OPEN) {
+    if (this.subject.readyState == WebSocket.OPEN && this.authenticated) {
       this.doSubscribe(gameId);
     } else {
-      this.subject.onopen = () => this.doSubscribe(gameId);
+      this.subscriptionWaiting = true;
     }
-
   }
 
   doSubscribe(gameId: number) {
     console.log(`trying to subscribe game ${gameId}`);
     let request: SubscribeRequest = { path: "/subscribe", game_id: gameId };
     this.subject!.send(JSON.stringify(request));
+  }
+
+  doAuth() {
     if (!this.authenticated) {
       let authRequest = { path: "/auth", jwt: localStorage.getItem("token") };
       this.subject!.send(JSON.stringify(authRequest));
+    }
+    if (this.subscriptionWaiting) {
+      this.subscriptionWaiting = false;
+      if (this.id) {
+        this.doSubscribe(this.id);
+      }
     }
   }
 
