@@ -1,4 +1,4 @@
-<div class="board">
+<div class="board" [class.my-turn]="myTurn">
     <div class="row" *ngFor="let row of board; index as i">
         <div *ngFor="let cell of row; index as j" class="cell" [class.red]="cell=='RedPawn' || cell=='RedKing'"
             id="cell{{i}}{{j}}"

@@ -30,6 +30,7 @@ export class BoardComponent implements OnInit, OnDestroy {
   currentMove: number[][] = [];
   currentMoveCapturing: boolean = false;
 
+  myTurn: boolean = false;
 
   @Input() set gameId(value: number | undefined) {
     this._gameId = value;
@@ -76,6 +77,13 @@ export class BoardComponent implements OnInit, OnDestroy {
       let indices = this.mapIndex(index);
       this.board[indices[0]][indices[1]] = "Empty";
     }
+
+    let username = localStorage.getItem("username");
+    if (move.player == username) {
+      this.myTurn = false;
+    } else if (username == this.game?.username1 || username == this.game?.username2) {
+      this.myTurn = true;
+    }
   }
 
   mapIndex(index: number): number[] {
@@ -113,6 +121,15 @@ export class BoardComponent implements OnInit, OnDestroy {
     this.game = board;
     // TODO: reverse board for reds?
     this.board = board.currentState;
+    let username = localStorage.getItem("username");
+    if (!username) {
+      return;
+    }
+    if (board.user_turn) {
+      this.myTurn = board.username1 == username;
+    } else {
+      this.myTurn = board.username2 == username;
+    }
   }
 
   onCell(i: number, j: number) {
