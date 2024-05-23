@@ -125,7 +125,7 @@ export class BoardComponent implements OnInit, OnDestroy {
     if (!username) {
       return;
     }
-    if (board.user_turn) {
+    if (board.userTurn) {
       this.myTurn = board.username1 == username;
     } else {
       this.myTurn = board.username2 == username;
