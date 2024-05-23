@@ -158,8 +158,13 @@ impl Rules for BritishRules {
             .filter(|a| a.start_end == start | end)
             .collect();
 
+        println!("{:?}", boards);
+        println!(" start {:32b}", start);
+        println!(" end {:32b}", end);
+
+
         if boards.len() == 1 {
-            return format!("{}x{}", start, end)
+            return format!("{}x{}", start_num, end_num)
         };
 
         // fast intermediate position
@@ -178,7 +183,7 @@ impl Rules for BritishRules {
         let diff = (diff ^ m) & m;
         if diff != 0 {
             let intermediate = 32-diff.trailing_zeros();
-            return format!("{}x{}x{}", start, intermediate, end)
+            return format!("{}x{}x{}", start_num, intermediate, end_num)
         }
         // TODO there can still be ambigous candidates but these need info about order of moves
         "".into()
@@ -745,6 +750,7 @@ struct CapturesWithPositions {
     mover: u32,
 }
 
+#[derive(Debug)]
 pub struct MoveCandidate {
     start_end: u32,
     mov: u32,
