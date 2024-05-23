@@ -42,6 +42,9 @@ export class WebsocketService {
   }
 
   connect() {
+    if (this.subject?.readyState == WebSocket.OPEN) {
+      return;
+    }
     this.subject = new WebSocket(`${this.apiUrl}/ws`);
     this.subject.onmessage = (event: MessageEvent<any>) => this.onMessage(event);
     this.subject.onclose = () => this.onClose();
