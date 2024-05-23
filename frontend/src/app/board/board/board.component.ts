@@ -153,12 +153,13 @@ export class BoardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (this.testCapture(this.currentMove[len-1], this.currentMove[len-2])) {
+    let capture = this.testCapture(this.currentMove[len-1], this.currentMove[len-2]);
+    if (capture) {
       console.log("move with capture");
       this.currentMoveCapturing = true;
     }
 
-    if (this.testMoveEnd(this.moveStart, [i, j])) {
+    if (!capture || this.testMoveEnd(this.moveStart, [i, j])) {
       let move = this.currentMove
         .map((p) => this.mapToIndex(p[0], p[1]))
         .join(this.currentMoveCapturing ? "x" : "-");
@@ -175,51 +176,62 @@ export class BoardComponent implements OnInit, OnDestroy {
     const column = target[1];
 
     if (field == "WhiteKing") {
-      return !this.testNeighboursForKing(row, column, "Red");
+      console.log("White king is moving");
+      const rightDown = this.isCaptureable([row+1, column+1], target, "Red")
+      const leftDown = this.isCaptureable([row+1, column-1], target, "Red")
+      const rightUp = this.isCaptureable([row-1, column+1], target, "Red")
+      const leftUp = this.isCaptureable([row-1, column-1], target, "Red")
+      return !rightDown && !leftDown && !rightUp && !leftUp;
     } else if (field == "WhitePawn") {
-      if (row-1 < 0) {
-        return true;
-      }
-      return !this.testNeighboursInRow(row-1, column, "Red");
+      console.log("White pawn is moving");
+      const right = this.isCaptureable([row+1, column+1], target, "Red")
+      const left = this.isCaptureable([row+1, column-1], target, "Red")
+      return !right && !left;
     } else if (field == "RedKing") {
-      return !this.testNeighboursForKing(row, column, "White");
+      console.log("Red king is moving");
+      const rightDown = this.isCaptureable([row+1, column+1], target, "White")
+      const leftDown = this.isCaptureable([row+1, column-1], target, "White")
+      const rightUp = this.isCaptureable([row-1, column+1], target, "White")
+      const leftUp = this.isCaptureable([row-1, column-1], target, "White")
+      return !rightDown && !leftDown && !rightUp && !leftUp;
     } else if (field == "RedPawn") {
-      if (row+1 >= this.board.length) {
-        return true;
-      }
-      return !this.testNeighboursInRow(row+1, column, "Red");
+      console.log("Red pawn is moving");
+      const right = this.isCaptureable([row-1, column+1], target, "White")
+      const left = this.isCaptureable([row-1, column-1], target, "White")
+      return !right && !left;
     }
     return true;
   }
 
-  testNeighboursForKing(row: number, column: number, enemyColor: "Red" | "White"): boolean {
-      if (row + 1 < this.board.length) {
-        if (this.testNeighboursInRow(row + 1, column, enemyColor)) {
-          return true;
-        }
-      }
-      if (row-1 >= 0) {
-        if(this.testNeighboursInRow(row-1, column, enemyColor)) {
-          return true;
-        }
-      }
+  isCaptureable(target: number[], capturer: number[], enemyColor: "Red" | "White"): boolean {
+    const rowDist = Math.abs(target[0] - capturer[0]);
+    const colDist = Math.abs(target[1] - capturer[1]);
+    if (rowDist != 1 || colDist != 1) {
       return false;
-  }
+    }
+    if (target[0] < 0 || target[0] >= this.board.length) {
+      return false;
+    }
+    if (target[1] < 0 || target[1] >= this.board[target[0]].length) {
+      return false;
+    }
+    let targetPawn = this.board[target[0]][target[1]];
+    let isEnemy = targetPawn.startsWith(enemyColor);
+    if (!isEnemy) {
+      return false;
+    }
 
-  testNeighboursInRow(row: number, column: number, enemyColor: "Red" | "White") {
-    if (column + 1 < this.board[row].length) {
-      const neighbourRight = this.board[row][column + 1];
-      if (neighbourRight.startsWith(enemyColor)) {
-        return true;
-      }
+    const nextRow = target[0] > capturer[0] ? target[0]+1 : target[0]-1;
+    const nextCol = target[1] > capturer[1] ? target[1]+1 : target[1]-1;
+    if (nextRow < 0 || nextRow >= this.board.length) {
+      return false;
     }
-    if (column - 1 >= 0) {
-      const neighbourLeft = this.board[row][column - 1];
-      if (neighbourLeft.startsWith(enemyColor)) {
-        return true;
-      }
+    if (nextCol < 0 || nextCol >= this.board[nextRow].length) {
+      return false;
     }
-    return false;
+
+    let fieldAfterTarget = this.board[nextRow][nextCol];
+    return fieldAfterTarget == "Empty";
   }
 
   testCapture(lastPosition: number[], newPosition: number[]): boolean {
