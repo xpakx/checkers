@@ -3,7 +3,7 @@ use std::sync::Arc;
 use lapin::{message::{Delivery, DeliveryResult}, options::BasicAckOptions, Channel};
 use redis::Commands;
 use ::serde::{Deserialize, Serialize};
-use tracing::{info, error};
+use tracing::{error, debug, info};
 
 use crate::{AppState, Color, Game, GameStatus, GameType, Msg};
 
@@ -80,7 +80,11 @@ async fn process_message(event: EngineEvent, state: Arc<AppState>, channel: Chan
     }
     let color = game.get_current_color();
     let user = game.get_current_user();
+    debug!("first user turn: {}", game.first_user_turn);
+    debug!("current user: {}", user);
     game.first_user_turn = !game.first_user_turn;
+    debug!("first user turn: {}", game.first_user_turn);
+    debug!("current user: {}", game.get_current_user());
     game.noncapture_moves = match have_captures(&old_state, &(game.current_state), &color) {
         true => 0,
         false => game.noncapture_moves+1,

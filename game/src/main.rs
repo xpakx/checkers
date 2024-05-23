@@ -356,11 +356,9 @@ impl Game {
         }
     }
     pub fn get_current_user(&self) -> String {
-        match (self.first_user_starts, self.first_user_turn) {
-            (true, true) => &self.user,
-            (true, false) => &self.opponent,
-            (false, true) => &self.opponent,
-            (false, false) => &self.user,
+        match self.first_user_turn {
+            true => &self.user,
+            false => &self.opponent,
         }.clone()
     }
 }
