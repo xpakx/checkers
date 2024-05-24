@@ -62,6 +62,18 @@
     background-color: #0077cc;
 }
 
+.board .row:nth-child(n) .cell:nth-child(n).mover {
+    background-color: #a6da95;
+}
+
+.board .row:nth-child(n) .cell:nth-child(n).target {
+    background-color: #eed49f;
+}
+
+.board .row:nth-child(n) .cell:nth-child(n).capture {
+    background-color: #ff9999;
+}
+
 .msg {
     font-size: 18px;
     margin-bottom: 10px;

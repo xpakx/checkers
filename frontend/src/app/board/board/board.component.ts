@@ -25,6 +25,7 @@ export class BoardComponent implements OnInit, OnDestroy {
   private moveSub?: Subscription;
   private boardSub?: Subscription;
   game?: BoardMessage;
+  viewClass: ("" | "mover" | "capture" | "target")[][] = Array(8).fill(Array(8).fill(""));
 
   moveStart?: number[] = undefined;
   currentMove: number[][] = [];
@@ -38,6 +39,7 @@ export class BoardComponent implements OnInit, OnDestroy {
     this.currentMove = [];
     this.currentMoveCapturing = false
     this.myTurn = false;
+    this.viewClass = Array(this.board.length).fill(null).map(() => Array(this.board.length).fill(""));
     if (value) {
       this.websocket.connect();
       this.websocket.subscribeGame(value);
@@ -125,6 +127,7 @@ export class BoardComponent implements OnInit, OnDestroy {
     this.game = board;
     // TODO: reverse board for reds?
     this.board = board.currentState;
+    this.viewClass = Array(this.board.length).fill(null).map(() => Array(this.board.length).fill(""));
     let username = localStorage.getItem("username");
     if (!username) {
       return;
@@ -140,11 +143,13 @@ export class BoardComponent implements OnInit, OnDestroy {
     if (!this.moveStart) {
       this.moveStart = [i, j];
       this.currentMove.push([i, j]);
+      this.viewClass[i][j] = "mover";
       console.log(`starting move from ${this.moveStart}.`);
       return;
     }
 
     this.currentMove.push([i, j]);
+    this.viewClass[i][j] = "target";
     console.log(`pushed ${[i, j]} to move.`);
     console.log(`move at the moment: ${this.currentMove}`);
 
@@ -166,6 +171,7 @@ export class BoardComponent implements OnInit, OnDestroy {
       this.currentMove = [];
       this.currentMoveCapturing = false;
       this.moveStart = undefined;
+      this.viewClass = Array(this.board.length).fill(null).map(() => Array(this.board.length).fill(""));
       this.websocket.makeMove(move);
     }
   }
@@ -248,6 +254,7 @@ export class BoardComponent implements OnInit, OnDestroy {
     const field = this.board[capturedRow][capturedCol];
 
     if (field === "RedKing" || field == "RedPawn") { // TODO: for reds
+      this.viewClass[capturedRow][capturedCol] = "capture";
       return true;
     }
     return false;
