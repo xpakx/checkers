@@ -43,22 +43,38 @@ fn without_captures(pre: u32, mov: u32) -> u32 {
 impl BitBoard {
     pub fn apply_move(&self, mov: u32, color: &Color) -> BitBoard {
         let empty: u32 = !(self.white_pawns | self.red_pawns | self.red_kings | self.white_kings);
+        let pawn_move = match color {
+            Color::White => self.white_pawns,
+            Color::Red => self.red_pawns,
+        } & mov > 0;
         BitBoard { 
             white_pawns: match color {
-                Color::White => without_moved(self.white_pawns, mov, empty),
+                Color::White => match pawn_move {
+                    true => without_moved(self.white_pawns, mov, empty),
+                    false => self.white_pawns,
+                },
                 Color::Red => without_captures(self.white_pawns, mov),
             },
             white_kings: match color {
-                Color::White => without_moved(self.white_kings, mov, empty),
+                Color::White => match pawn_move {
+                    false => without_moved(self.white_kings, mov, empty),
+                    true => self.white_kings,
+                },
                 Color::Red => without_captures(self.white_kings, mov),
             },
             red_pawns: match color {
                 Color::White => without_captures(self.red_pawns, mov),
-                Color::Red => without_moved(self.red_pawns, mov, empty),
+                Color::Red => match pawn_move {
+                    true => without_moved(self.red_pawns, mov, empty),
+                    false => self.red_pawns,
+                },
             },
             red_kings: match color {
                 Color::White => without_captures(self.red_kings, mov),
-                Color::Red => without_moved(self.red_kings, mov, empty),
+                Color::Red => match pawn_move {
+                    false => without_moved(self.red_kings, mov, empty),
+                    true => self.red_kings,
+                },
             },
         }
     }

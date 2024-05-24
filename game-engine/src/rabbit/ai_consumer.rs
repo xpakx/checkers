@@ -97,8 +97,14 @@ fn process_ai_event(message: AiEvent) -> EngineEvent {
     let move_string = rules.move_to_string(&old_board, mov, &message.color);
     println!("move string: {}", move_string);
     let board = old_board.apply_move(mov, &message.color);
-    println!("white pawns: {:032b}", board.white_pawns);
-    println!("red pawns: {:032b}", board.red_pawns);
+    println!("old white pawns: {:032b}", old_board.white_pawns);
+    println!("old red pawns:   {:032b}", old_board.red_pawns);
+    println!("old white kings: {:032b}", old_board.white_kings);
+    println!("old red kings:   {:032b}", old_board.red_kings);
+    println!("white pawns:     {:032b}", board.white_pawns);
+    println!("red pawns:       {:032b}", board.red_pawns);
+    println!("white kings:     {:032b}", board.white_kings);
+    println!("red kings:       {:032b}", board.red_kings);
     let won = rules.is_game_won(&board, &message.color);
     let noncaptures = match have_captures(&old_board, &board, &message.color) {
         true => 0,
