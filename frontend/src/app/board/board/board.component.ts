@@ -77,7 +77,10 @@ export class BoardComponent implements OnInit, OnDestroy {
     console.log(end);
     let type = this.board[start[0]][start[1]];
     this.board[start[0]][start[1]] = "Empty";
-    this.board[end[0]][end[1]] = type; // TODO: promotion
+    if (details.promotion) {
+      type = type.replace("Pawn", "King") as "WhiteKing" | "RedKing";
+    }
+    this.board[end[0]][end[1]] = type;
     
     for (let index of details.captures) {
       let indices = this.mapIndex(index);
