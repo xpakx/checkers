@@ -139,7 +139,7 @@ pub async fn change_invitation_status(db: &PgPool, id: &i64, status: InvitationS
 pub async fn get_moves(db: &PgPool, id: &i64) -> Result<Vec<MoveModel>, GameError> {
     sqlx::query_as::<Postgres, MoveModel>("SELECT * 
                                           FROM moves 
-                                          WHERE game_id = ?1 
+                                          WHERE game_id = $1 
                                           ORDER BY timestamp ASC")
         .bind(id)
         .fetch_all(db)
@@ -153,8 +153,8 @@ pub async fn get_moves(db: &PgPool, id: &i64) -> Result<Vec<MoveModel>, GameErro
 
 pub async fn update_game(db: &PgPool, game: GameModel) -> Result<PgQueryResult, GameError> {
     sqlx::query("UPDATE game 
-                SET status = ?2, current_state = ?3, user_turn = ?4, nonpromoting_moves = ?5, noncapture_moves = $6  
-                WHERE id = ?1")
+                SET status = $2, current_state = $3, user_turn = $4, nonpromoting_moves = $5, noncapture_moves = $6  
+                WHERE id = $1")
         .bind(&game.id)
         .bind(&game.status)
         .bind(&game.current_state)
