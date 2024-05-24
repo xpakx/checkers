@@ -1,7 +1,7 @@
 use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
 use serde::{Deserialize, Serialize};
 
-use crate::{board::{generate_bit_board, move_to_bitboard}, rabbit::DESTINATION_EXCHANGE, rules::{get_rules, MoveVerification}, Color};
+use crate::{board::{generate_bit_board, have_captures, have_promotions, move_to_bitboard}, rabbit::DESTINATION_EXCHANGE, rules::{get_rules, MoveVerification}, Color};
 
 pub fn set_move_delegate(consumer: lapin::Consumer, channel: Channel) {
     consumer.set_delegate({
@@ -133,7 +133,22 @@ fn process_move(message: MoveEvent) -> EngineEvent {
         (true, Some(board)) => rules.is_game_won(board, &message.color),
         _ => false,
     };
-    let drawn = !won && rules.is_game_drawn(message.noncapture_moves, message.nonpromoting_moves);
+    let noncaptures = match (&board, &new_board) {
+        (Ok(old_board), Some(new_board)) => match have_captures(&old_board, &new_board, &message.color) {
+            true => 0,
+            false => message.noncapture_moves,
+        },
+        (_, _) => message.noncapture_moves,
+    };
+    let nonpromotions = match (&board, &new_board) {
+        (Ok(old_board), Some(new_board)) => match have_promotions(&old_board, &new_board, &message.color) {
+            true => 0,
+            false => message.nonpromoting_moves,
+        },
+        (_, _) => message.nonpromoting_moves,
+    };
+    println!("last capture: {}, last promotion: {}", noncaptures, nonpromotions);
+    let drawn = !won && rules.is_game_drawn(noncaptures, nonpromotions);
     let finished = won || drawn;
 
     EngineEvent {

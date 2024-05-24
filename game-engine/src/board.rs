@@ -32,11 +32,11 @@ pub fn generate_bit_board(string_board: String) -> Result<BitBoard, String> {
         Ok(BitBoard {white_pawns, white_kings, red_pawns, red_kings})
 }
 
-fn without_captures(pre: u32, mov: u32, empty: u32) -> u32 {
+fn without_moved(pre: u32, mov: u32, empty: u32) -> u32 {
     (pre ^ (pre & mov)) | (empty & mov)
 }
 
-fn without_moved(pre: u32, mov: u32) -> u32 {
+fn without_captures(pre: u32, mov: u32) -> u32 {
     pre ^ (pre & mov)
 }
 
@@ -45,20 +45,20 @@ impl BitBoard {
         let empty: u32 = !(self.white_pawns | self.red_pawns | self.red_kings | self.white_kings);
         BitBoard { 
             white_pawns: match color {
-                Color::White => without_captures(self.white_pawns, mov, empty),
-                Color::Red => without_moved(self.white_pawns, mov),
+                Color::White => without_moved(self.white_pawns, mov, empty),
+                Color::Red => without_captures(self.white_pawns, mov),
             },
             white_kings: match color {
-                Color::White => without_captures(self.white_kings, mov, empty),
-                Color::Red => without_moved(self.white_kings, mov),
+                Color::White => without_moved(self.white_kings, mov, empty),
+                Color::Red => without_captures(self.white_kings, mov),
             },
             red_pawns: match color {
-                Color::White => without_moved(self.red_pawns, mov),
-                Color::Red => without_captures(self.red_pawns, mov, empty),
+                Color::White => without_captures(self.red_pawns, mov),
+                Color::Red => without_moved(self.red_pawns, mov, empty),
             },
             red_kings: match color {
-                Color::White => without_moved(self.red_kings, mov),
-                Color::Red => without_captures(self.red_kings, mov, empty),
+                Color::White => without_captures(self.red_kings, mov),
+                Color::Red => without_moved(self.red_kings, mov, empty),
             },
         }
     }
@@ -177,6 +177,30 @@ pub fn move_to_bitboard(move_string: String) -> Result<MoveBit, ParseError> {
 pub struct MoveBit {
     pub mov: u32,
     pub start_end: u32,
+}
+
+pub fn have_captures(old: &BitBoard, new: &BitBoard, color: &Color) -> bool {
+    let enemy_old = match color {
+        Color::White => old.red_pawns | old.red_kings,
+        Color::Red => old.white_pawns | old.white_kings,
+    }.count_ones();
+    let enemy_new = match color {
+        Color::White => new.red_pawns | new.red_kings,
+        Color::Red => new.white_pawns | new.white_kings,
+    }.count_ones();
+    enemy_old < enemy_new
+}
+
+pub fn have_promotions(old: &BitBoard, new: &BitBoard, color: &Color) -> bool {
+    let my_old = match color {
+        Color::White => old.white_kings,
+        Color::Red => old.red_kings,
+    }.count_ones();
+    let my_new = match color {
+        Color::White => new.white_kings,
+        Color::Red => new.red_kings,
+    }.count_ones();
+    my_new > my_old
 }
 
 #[cfg(test)]

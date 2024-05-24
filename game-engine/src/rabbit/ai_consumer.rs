@@ -2,7 +2,7 @@ use lapin::{message::DeliveryResult, options::BasicAckOptions, Channel};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{ai::get_engine, board::generate_bit_board, rabbit::DESTINATION_EXCHANGE, rules::get_rules, Color};
+use crate::{ai::get_engine, board::{generate_bit_board, have_captures, have_promotions}, rabbit::DESTINATION_EXCHANGE, rules::get_rules, Color};
 
 use super::move_consumer::EngineEvent;
 
@@ -84,7 +84,7 @@ enum AIType {
 
 // TODO
 fn process_ai_event(message: AiEvent) -> EngineEvent {
-    let board = generate_bit_board(message.game_state).unwrap(); // TODO
+    let old_board = generate_bit_board(message.game_state).unwrap(); // TODO
     let rules = get_rules(match message.ruleset {
         RuleSet::British => crate::rules::RuleSet::British,
     });
@@ -92,15 +92,24 @@ fn process_ai_event(message: AiEvent) -> EngineEvent {
         AIType::Random => crate::ai::EngineType::Random,
         AIType::Counting => crate::ai::EngineType::Counting,
     });
-    let mov = engine.get_move(&board, &message.color, &rules);
+    let mov = engine.get_move(&old_board, &message.color, &rules);
     println!("move: {:032b}", mov);
-    let move_string = rules.move_to_string(&board, mov, &message.color);
+    let move_string = rules.move_to_string(&old_board, mov, &message.color);
     println!("move string: {}", move_string);
-    let board = board.apply_move(mov, &message.color);
+    let board = old_board.apply_move(mov, &message.color);
     println!("white pawns: {:032b}", board.white_pawns);
     println!("red pawns: {:032b}", board.red_pawns);
     let won = rules.is_game_won(&board, &message.color);
-    let drawn = !won && rules.is_game_drawn(message.noncapture_moves, message.nonpromoting_moves);
+    let noncaptures = match have_captures(&old_board, &board, &message.color) {
+        true => 0,
+        false => message.noncapture_moves,
+    };
+    let nonpromotions = match have_promotions(&old_board, &board, &message.color) {
+        true => 0,
+        false => message.nonpromoting_moves,
+    };
+    println!("last capture: {}, last promotion: {}", noncaptures, nonpromotions);
+    let drawn = !won && rules.is_game_drawn(noncaptures, nonpromotions);
     let finished = won || drawn;
 
     EngineEvent {
