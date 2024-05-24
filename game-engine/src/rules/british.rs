@@ -70,6 +70,7 @@ impl Rules for BritishRules {
             Color::Red => mov.start_end & (board.red_pawns | board.red_kings),
         };
         if start.count_ones() != 1 {
+            println!("No start, move illegal");
             return MoveVerification::Illegal
         }
         let jumps = self.get_jumps_with_positions(board, start, color);
@@ -82,16 +83,19 @@ impl Rules for BritishRules {
             .map(|j| &j.mov)
             .collect();
         if matched_jumps.len() == 1 {
+            println!("Single move. Legal.");
             return MoveVerification::Ok(*matched_jumps[0])
         } else if matched_jumps.len() > 1 {
+            println!("Ambiguous move. ILlegal.");
             return MoveVerification::Ambiguous
         }
         let any_jumpers = self.get_possible_jumpers(board, color) != 0;
         if any_jumpers {
+            println!("No jump matched, but there are possible jumpers.");
             return MoveVerification::Illegal
         }
         let moves = self.get_moves(board, start, color);
-        let matched_moves: Vec<&u32> = moves.iter().filter(|&j| j & mov.start_end == mov.start_end).collect();
+        let matched_moves: Vec<&u32> = moves.iter().filter(|&j| *j == mov.start_end).collect();
         match matched_moves.len() {
             1 => MoveVerification::Ok(*matched_moves[0]),
             0 => MoveVerification::Illegal,
