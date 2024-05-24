@@ -36,8 +36,18 @@ fn without_moved(pre: u32, mov: u32, empty: u32) -> u32 {
     (pre ^ (pre & mov)) | (empty & mov)
 }
 
+fn without_moved_and_promoted(pre: u32, mov: u32, empty: u32, mask: u32) -> u32 {
+    (pre ^ (pre & mov)) | (empty & mov & !mask)
+}
+
 fn without_captures(pre: u32, mov: u32) -> u32 {
     pre ^ (pre & mov)
+}
+
+const RED_PROMOTION: u32 = 0b1111_0000_0000_0000_0000_0000_0000_0000;
+const WHITE_PROMOTION: u32 = 0b0000_0000_0000_0000_0000_0000_0000_1111;
+fn with_promoted(kings: u32, mov: u32, mask: u32) -> u32 {
+    kings | (mask & mov)
 }
 
 impl BitBoard {
@@ -50,7 +60,7 @@ impl BitBoard {
         BitBoard { 
             white_pawns: match color {
                 Color::White => match pawn_move {
-                    true => without_moved(self.white_pawns, mov, empty),
+                    true => without_moved_and_promoted(self.white_pawns, mov, empty, WHITE_PROMOTION),
                     false => self.white_pawns,
                 },
                 Color::Red => without_captures(self.white_pawns, mov),
@@ -58,14 +68,14 @@ impl BitBoard {
             white_kings: match color {
                 Color::White => match pawn_move {
                     false => without_moved(self.white_kings, mov, empty),
-                    true => self.white_kings,
+                    true => with_promoted(self.white_kings, mov, WHITE_PROMOTION),
                 },
                 Color::Red => without_captures(self.white_kings, mov),
             },
             red_pawns: match color {
                 Color::White => without_captures(self.red_pawns, mov),
                 Color::Red => match pawn_move {
-                    true => without_moved(self.red_pawns, mov, empty),
+                    true => without_moved_and_promoted(self.red_pawns, mov, empty, RED_PROMOTION),
                     false => self.red_pawns,
                 },
             },
@@ -73,7 +83,7 @@ impl BitBoard {
                 Color::White => without_captures(self.red_kings, mov),
                 Color::Red => match pawn_move {
                     false => without_moved(self.red_kings, mov, empty),
-                    true => self.red_kings,
+                    true => with_promoted(self.red_kings, mov, RED_PROMOTION),
                 },
             },
         }
