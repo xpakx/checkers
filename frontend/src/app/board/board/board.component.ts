@@ -144,6 +144,9 @@ export class BoardComponent implements OnInit, OnDestroy {
 
   onCell(i: number, j: number) {
     if (!this.moveStart) {
+      if (this.board[i][j] == "Empty") {
+        return;
+      }
       this.moveStart = [i, j];
       this.currentMove.push([i, j]);
       this.viewClass[i][j] = "mover";
