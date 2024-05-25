@@ -248,7 +248,7 @@ impl BritishRules {
 
             let targets = (((not_occupied & MASK_3_DOWN) >> 3) | ((not_occupied & MASK_5_DOWN) >> 5)) & opponent;
             if targets != 0 {
-                jumpers |= (targets << 4) & board.white_kings;
+                jumpers |= (targets >> 4) & board.white_kings;
             }
         }
         jumpers
@@ -270,14 +270,14 @@ impl BritishRules {
         }
 
         if board.red_kings != 0 {
-            let targets = (not_occupied >> 4) & opponent;
+            let targets = (not_occupied << 4) & opponent;
             if targets != 0 {
                 jumpers |= (((targets & MASK_3_UP) << 3) | ((targets & MASK_5_UP) << 5)) & board.red_kings;
             }
 
             let targets = (((not_occupied & MASK_3_UP) << 3) | ((not_occupied & MASK_5_UP) << 5)) & opponent;
             if targets != 0 {
-                jumpers |= (targets >> 4) & board.red_kings;
+                jumpers |= (targets << 4) & board.red_kings;
             }
         }
         jumpers
