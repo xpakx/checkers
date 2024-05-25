@@ -32,8 +32,13 @@ pub fn generate_bit_board(string_board: String) -> Result<BitBoard, String> {
         Ok(BitBoard {white_pawns, white_kings, red_pawns, red_kings})
 }
 
-fn without_moved(pre: u32, mov: u32, empty: u32) -> u32 {
-    (pre ^ (pre & mov)) | (empty & mov)
+fn kings_without_moved(pre: u32, mov: u32, empty: u32) -> u32 {
+    let end = empty & mov;
+    let end = match end {
+        0 => !empty & mov,
+        _ => end,
+    };
+    (pre ^ (pre & mov)) | end
 }
 
 fn without_moved_and_promoted(pre: u32, mov: u32, empty: u32, mask: u32) -> u32 {
@@ -67,7 +72,7 @@ impl BitBoard {
             },
             white_kings: match color {
                 Color::White => match pawn_move {
-                    false => without_moved(self.white_kings, mov, empty),
+                    false => kings_without_moved(self.white_kings, mov, empty),
                     true => with_promoted(self.white_kings, mov, WHITE_PROMOTION),
                 },
                 Color::Red => without_captures(self.white_kings, mov),
@@ -82,7 +87,7 @@ impl BitBoard {
             red_kings: match color {
                 Color::White => without_captures(self.red_kings, mov),
                 Color::Red => match pawn_move {
-                    false => without_moved(self.red_kings, mov, empty),
+                    false => kings_without_moved(self.red_kings, mov, empty),
                     true => with_promoted(self.red_kings, mov, RED_PROMOTION),
                 },
             },
