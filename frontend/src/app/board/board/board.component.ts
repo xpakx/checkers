@@ -164,13 +164,17 @@ export class BoardComponent implements OnInit, OnDestroy {
       return;
     }
 
-    let capture = this.testCapture(this.currentMove[len-2], this.currentMove[len-1]);
+    const field = this.board[this.moveStart[0]][this.moveStart[1]];
+    const enemyColor = field.startsWith("White") ? "Red" : "White";
+
+    let capture = this.testCapture(this.currentMove[len-2], this.currentMove[len-1], enemyColor);
     if (capture) {
       console.log("move with capture");
       this.currentMoveCapturing = true;
     }
+    console.log(this.currentMoveCapturing ? "capturing" : "non-capturing");
 
-    if (!capture || this.testMoveEnd(this.moveStart, [i, j])) {
+    if (!this.currentMoveCapturing || this.testMoveEnd(this.moveStart, [i, j])) {
       let move = this.currentMove
         .map((p) => this.mapToIndex(p[0], p[1]))
         .join(this.currentMoveCapturing ? "x" : "-");
@@ -246,7 +250,7 @@ export class BoardComponent implements OnInit, OnDestroy {
     return fieldAfterTarget == "Empty";
   }
 
-  testCapture(lastPosition: number[], newPosition: number[]): boolean {
+  testCapture(lastPosition: number[], newPosition: number[], enemyColor: "Red" | "White"): boolean {
     const rowDiff = Math.abs(newPosition[0] - lastPosition[0]);
     const colDiff = Math.abs(newPosition[1] - lastPosition[1]);
 
@@ -259,7 +263,7 @@ export class BoardComponent implements OnInit, OnDestroy {
 
     const field = this.board[capturedRow][capturedCol];
 
-    if (field === "RedKing" || field == "RedPawn") { // TODO: for reds
+    if (field.startsWith(enemyColor)) { 
       this.viewClass[capturedRow][capturedCol] = "capture";
       return true;
     }
