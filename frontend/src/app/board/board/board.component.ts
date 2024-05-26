@@ -73,6 +73,9 @@ export class BoardComponent implements OnInit, OnDestroy {
     
     let start = this.mapIndex(details.start);
     let end = this.mapIndex(details.end);
+    this.viewClass = Array(this.board.length).fill(null).map(() => Array(this.board.length).fill(""));
+    this.viewClass[start[0]][start[1]] = "mover";
+    this.viewClass[end[0]][end[1]] = "target";
     console.log(start);
     console.log(end);
     let type = this.board[start[0]][start[1]];
@@ -85,6 +88,7 @@ export class BoardComponent implements OnInit, OnDestroy {
     for (let index of details.captures) {
       let indices = this.mapIndex(index);
       this.board[indices[0]][indices[1]] = "Empty";
+      this.viewClass[indices[0]][indices[1]] = "capture";
     }
 
     let username = localStorage.getItem("username");
@@ -149,6 +153,7 @@ export class BoardComponent implements OnInit, OnDestroy {
       }
       this.moveStart = [i, j];
       this.currentMove.push([i, j]);
+      this.viewClass = Array(this.board.length).fill(null).map(() => Array(this.board.length).fill(""));
       this.viewClass[i][j] = "mover";
       console.log(`starting move from ${this.moveStart}.`);
       return;
