@@ -241,6 +241,10 @@ export class BoardComponent implements OnInit, OnDestroy {
     if (!isEnemy) {
       return false;
     }
+    let alreadyCaptured = this.viewClass[target[0]][target[1]] == "capture";
+    if (alreadyCaptured) {
+      return false;
+    }
 
     const nextRow = target[0] > capturer[0] ? target[0]+1 : target[0]-1;
     const nextCol = target[1] > capturer[1] ? target[1]+1 : target[1]-1;
