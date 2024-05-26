@@ -71,11 +71,14 @@ export class WebsocketService {
   subscribeGame(gameId: number) {
     this.id = gameId;
     if (!this.subject) {
+      console.log("No subject");
       return;
     }
     if (this.subject.readyState == WebSocket.OPEN && this.authenticated) {
+      console.log("Subscribing");
       this.doSubscribe(gameId);
     } else {
+      console.log("Not authenticated, waiting for subscription.", this.subject.readyState, this.authenticated);
       this.subscriptionWaiting = true;
     }
   }
@@ -125,8 +128,8 @@ export class WebsocketService {
     console.log("Closed");
     this.authenticated = false;
     if (this.id) {
+      this.subscriptionWaiting = true;
       this.connect();
-      this.subscribeGame(this.id);
     }
   }
 
@@ -152,7 +155,8 @@ export class WebsocketService {
     localStorage.setItem('token', response.token.toString());
     localStorage.setItem('username', response.username.toString());
     if (this.id) {
-      this.subscribeGame(this.id);
+      this.subscriptionWaiting = true;
+      this.doAuth();
     }
   }
 
