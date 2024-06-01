@@ -79,12 +79,12 @@ impl CountingEngine {
 
     fn min_max_decision(&self, board: &BitBoard, color: &Color, rules: &Box<dyn Rules>, depth: u32) -> u32 {
         let moves = self.generate_moves(board, rules, color);
-        let next_player = self.next_color(color);
+        let opp_color = self.next_color(color);
         let mut best_move = 0;
         let mut best_result = -200;
         for mov in moves {
             let new_board = board.apply_move(mov, color);
-            let min = self.min_value(&new_board, &next_player, &color, rules, depth-1);
+            let min = self.min_value(&new_board, &opp_color, &color, rules, depth-1);
             if min >= best_result {
                 best_result = min;
                 best_move = mov;
@@ -93,8 +93,8 @@ impl CountingEngine {
         return best_move;
     }
 
-    fn max_value(&self, board: &BitBoard, color: &Color, start_color: &Color, rules: &Box<dyn Rules>, depth: u32) -> i16 {
-        if rules.is_game_won(board, color) {
+    fn max_value(&self, board: &BitBoard, opp_color: &Color, start_color: &Color, rules: &Box<dyn Rules>, depth: u32) -> i16 {
+        if rules.is_game_won(board, opp_color) {
             return -200;
         }
         if rules.is_game_drawn(0, 0) { //TODO
@@ -103,12 +103,11 @@ impl CountingEngine {
         if depth == 0 {
             return self.evaluate(board, start_color);
         }
-        let moves = self.generate_moves(board, rules, color);
-        let next_player = self.next_color(color);
+        let moves = self.generate_moves(board, rules, start_color);
         let mut best_result = -200;
         for mov in moves {
-            let new_board = board.apply_move(mov, color);
-            let min = self.min_value(&new_board, &next_player, &start_color, rules, depth-1);
+            let new_board = board.apply_move(mov, start_color);
+            let min = self.min_value(&new_board, &opp_color, &start_color, rules, depth-1);
             if min > best_result {
                 best_result = min;
             }
@@ -116,8 +115,8 @@ impl CountingEngine {
         return best_result;
     }
 
-    fn min_value(&self, board: &BitBoard, color: &Color, start_color: &Color, rules: &Box<dyn Rules>, depth: u32) -> i16 {
-        if rules.is_game_won(board, color) {
+    fn min_value(&self, board: &BitBoard, opp_color: &Color, start_color: &Color, rules: &Box<dyn Rules>, depth: u32) -> i16 {
+        if rules.is_game_won(board, start_color) {
             return 200;
         }
         if rules.is_game_drawn(0, 0) { //TODO
@@ -126,12 +125,11 @@ impl CountingEngine {
         if depth == 0 {
             return self.evaluate(board, start_color);
         }
-        let moves = self.generate_moves(board, rules, color);
-        let next_player = self.next_color(color);
+        let moves = self.generate_moves(board, rules, opp_color);
         let mut best_result = 200;
         for mov in moves {
-            let new_board = board.apply_move(mov, color);
-            let max = self.max_value(&new_board, &next_player, &start_color, rules, depth-1);
+            let new_board = board.apply_move(mov, opp_color);
+            let max = self.max_value(&new_board, &opp_color, &start_color, rules, depth-1);
             if max < best_result {
                 best_result = max;
             }
