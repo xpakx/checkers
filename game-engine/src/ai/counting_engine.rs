@@ -85,7 +85,7 @@ impl CountingEngine {
         for mov in moves {
             let new_board = board.apply_move(mov, color);
             let min = self.min_value(&new_board, &next_player, rules, depth);
-            if min > best_result {
+            if min >= best_result {
                 best_result = min;
                 best_move = mov;
             }
