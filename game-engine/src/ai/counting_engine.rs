@@ -85,6 +85,11 @@ impl CountingEngine {
         for mov in moves {
             let new_board = board.apply_move(mov, color);
             let min = self.min_value(&new_board, &opp_color, &color, rules, depth-1);
+            println!("move: {:032b}", mov);
+            println!("evaluation: {}", min);
+            if min == 200 {
+                return mov
+            }
             if min >= best_result {
                 best_result = min;
                 best_move = mov;
@@ -108,6 +113,9 @@ impl CountingEngine {
         for mov in moves {
             let new_board = board.apply_move(mov, start_color);
             let min = self.min_value(&new_board, &opp_color, &start_color, rules, depth-1);
+            if min == 200 {
+                return min
+            }
             if min > best_result {
                 best_result = min;
             }
@@ -130,6 +138,9 @@ impl CountingEngine {
         for mov in moves {
             let new_board = board.apply_move(mov, opp_color);
             let max = self.max_value(&new_board, &opp_color, &start_color, rules, depth-1);
+            if max == -200 {
+                return max
+            }
             if max < best_result {
                 best_result = max;
             }
