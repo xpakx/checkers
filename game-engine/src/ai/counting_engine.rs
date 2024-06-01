@@ -84,7 +84,7 @@ impl CountingEngine {
         let mut best_result = -200;
         for mov in moves {
             let new_board = board.apply_move(mov, color);
-            let min = self.min_value(&new_board, &next_player, rules, depth);
+            let min = self.min_value(&new_board, &next_player, &color, rules, depth-1);
             if min >= best_result {
                 best_result = min;
                 best_move = mov;
@@ -93,7 +93,7 @@ impl CountingEngine {
         return best_move;
     }
 
-    fn max_value(&self, board: &BitBoard, color: &Color, rules: &Box<dyn Rules>, depth: u32) -> i16 {
+    fn max_value(&self, board: &BitBoard, color: &Color, start_color: &Color, rules: &Box<dyn Rules>, depth: u32) -> i16 {
         if rules.is_game_won(board, color) {
             return -200;
         }
@@ -101,14 +101,14 @@ impl CountingEngine {
             return 0;
         }
         if depth == 0 {
-            return self.evaluate(board, color);
+            return self.evaluate(board, start_color);
         }
         let moves = self.generate_moves(board, rules, color);
         let next_player = self.next_color(color);
         let mut best_result = -200;
         for mov in moves {
             let new_board = board.apply_move(mov, color);
-            let min = self.min_value(&new_board, &next_player, rules, depth-1);
+            let min = self.min_value(&new_board, &next_player, &start_color, rules, depth-1);
             if min > best_result {
                 best_result = min;
             }
@@ -116,7 +116,7 @@ impl CountingEngine {
         return best_result;
     }
 
-    fn min_value(&self, board: &BitBoard, color: &Color, rules: &Box<dyn Rules>, depth: u32) -> i16 {
+    fn min_value(&self, board: &BitBoard, color: &Color, start_color: &Color, rules: &Box<dyn Rules>, depth: u32) -> i16 {
         if rules.is_game_won(board, color) {
             return 200;
         }
@@ -124,14 +124,14 @@ impl CountingEngine {
             return 0;
         }
         if depth == 0 {
-            return -self.evaluate(board, color);
+            return self.evaluate(board, start_color);
         }
         let moves = self.generate_moves(board, rules, color);
         let next_player = self.next_color(color);
         let mut best_result = 200;
         for mov in moves {
             let new_board = board.apply_move(mov, color);
-            let max = self.max_value(&new_board, &next_player, rules, depth-1);
+            let max = self.max_value(&new_board, &next_player, &start_color, rules, depth-1);
             if max < best_result {
                 best_result = max;
             }
