@@ -37,7 +37,7 @@ impl CountingEngine {
             Color::White => (board.white_pawns, board.red_pawns),
         };
         let strength = (10*kings.count_ones() + pawns.count_ones()) as i16; // max = 120, min = 0
-        let opponent_strength = (10*opponent_kings.count_zeros() + opponent_pawns.count_ones()) as i16;
+        let opponent_strength = (10*opponent_kings.count_ones() + opponent_pawns.count_ones()) as i16;
         strength - opponent_strength
     }
 
