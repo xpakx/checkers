@@ -92,6 +92,7 @@ pub async fn new_game(State(state): State<Arc<AppState>>, user: UserData, Valida
         Some(ai) => match ai {
             game::AIType::None => AIType::None,
             game::AIType::Random => AIType::Random,
+            game::AIType::Counting => AIType::Counting,
         }
     };
     let invitation = match game_type {

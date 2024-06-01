@@ -212,6 +212,7 @@ pub enum RuleSet {
 pub enum AIType {
     None = 0,
     Random = 1,
+    Counting = 2,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, sqlx::Type, Clone, Copy)]

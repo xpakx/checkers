@@ -18,7 +18,7 @@ pub enum Rules {
 
 #[derive(Serialize, Deserialize)]
 pub enum AIType {
-    None, Random,
+    None, Random, Counting,
 }
 
 #[derive(Serialize, Deserialize, Validate)]

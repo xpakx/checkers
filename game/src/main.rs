@@ -365,7 +365,7 @@ impl Game {
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]
 pub enum AIType {
-    None, Random,
+    None, Random, Counting,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Copy)]

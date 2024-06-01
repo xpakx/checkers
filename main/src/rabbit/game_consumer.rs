@@ -80,7 +80,7 @@ pub enum RuleSet {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum AIType {
-    None, Random,
+    None, Random, Counting,
 }
 
 impl Default for StateEvent {
@@ -147,6 +147,7 @@ async fn process_message(message: GameEvent, state: Arc<AppState>, channel: Chan
             ai_type: match game.ai_type {
                 repository::AIType::None => AIType::None,
                 repository::AIType::Random => AIType::Random,
+                repository::AIType::Counting => AIType::Counting,
             },
             status: match game.status {
                 repository::GameStatus::NotFinished => GameStatus::NotFinished,

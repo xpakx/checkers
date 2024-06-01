@@ -34,7 +34,7 @@ export class WebsocketService {
 
   constructor(private authService: AuthService) { 
     this.apiUrl = environment.apiUrl.replace(/^http/, 'ws');
-    this.apiUrl = "ws://localhost:8081/ws";
+    this.apiUrl = "ws://localhost:8081";
     if (!this.apiUrl.startsWith("ws")) {
       let frontendUrl = window.location.origin.replace(/^http/, 'ws');
       this.apiUrl = frontendUrl + environment.apiUrl;
