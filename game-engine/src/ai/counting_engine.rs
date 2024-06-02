@@ -84,7 +84,7 @@ impl CountingEngine {
         let mut best_result = -200;
         for mov in moves {
             let new_board = board.apply_move(mov, color);
-            let min = self.min_value(&new_board, &opp_color, &color, rules, depth-1);
+            let min = self.min_value(&new_board, &opp_color, &color, rules, depth-1, -200, 200);
             println!("move: {:032b}", mov);
             println!("evaluation: {}", min);
             if min == 200 {
@@ -98,7 +98,7 @@ impl CountingEngine {
         return best_move;
     }
 
-    fn max_value(&self, board: &BitBoard, opp_color: &Color, start_color: &Color, rules: &Box<dyn Rules>, depth: u32) -> i16 {
+    fn max_value(&self, board: &BitBoard, opp_color: &Color, start_color: &Color, rules: &Box<dyn Rules>, depth: u32, alpha: i16, beta: i16) -> i16 {
         if rules.is_game_won(board, opp_color) {
             return -200;
         }
@@ -108,22 +108,29 @@ impl CountingEngine {
         if depth == 0 {
             return self.evaluate(board, start_color);
         }
+        let mut alpha = alpha;
         let moves = self.generate_moves(board, rules, start_color);
         let mut best_result = -200;
         for mov in moves {
             let new_board = board.apply_move(mov, start_color);
-            let min = self.min_value(&new_board, &opp_color, &start_color, rules, depth-1);
+            let min = self.min_value(&new_board, &opp_color, &start_color, rules, depth-1, alpha, beta);
             if min == 200 {
                 return min
             }
             if min > best_result {
                 best_result = min;
             }
+            if best_result > beta {
+                break
+            }
+            if best_result > alpha {
+                alpha = best_result;
+            }
         }
         return best_result;
     }
 
-    fn min_value(&self, board: &BitBoard, opp_color: &Color, start_color: &Color, rules: &Box<dyn Rules>, depth: u32) -> i16 {
+    fn min_value(&self, board: &BitBoard, opp_color: &Color, start_color: &Color, rules: &Box<dyn Rules>, depth: u32, alpha: i16, beta: i16) -> i16 {
         if rules.is_game_won(board, start_color) {
             return 200;
         }
@@ -133,16 +140,23 @@ impl CountingEngine {
         if depth == 0 {
             return self.evaluate(board, start_color);
         }
+        let mut beta = beta;
         let moves = self.generate_moves(board, rules, opp_color);
         let mut best_result = 200;
         for mov in moves {
             let new_board = board.apply_move(mov, opp_color);
-            let max = self.max_value(&new_board, &opp_color, &start_color, rules, depth-1);
+            let max = self.max_value(&new_board, &opp_color, &start_color, rules, depth-1, alpha, beta);
             if max == -200 {
                 return max
             }
             if max < best_result {
                 best_result = max;
+            }
+            if best_result < alpha {
+                break
+            }
+            if best_result < beta {
+                beta = best_result;
             }
         }
         return best_result;
