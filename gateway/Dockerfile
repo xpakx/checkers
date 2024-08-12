@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.72 AS build
+FROM rust:1.75 AS build
 RUN apt-get -y update
 RUN apt-get install musl-tools -y
 WORKDIR /app/src/
@@ -15,7 +15,7 @@ RUN cargo install --target x86_64-unknown-linux-musl --path .
 
 FROM scratch
 MAINTAINER xpakx.github.io
-COPY --from=build /usr/local/cargo/bin/gateway /usr/local/bin/gateway
+COPY --from=build /usr/local/cargo/bin/checkers /usr/local/bin/gateway
 
 EXPOSE 8000
 CMD [ "gateway"]
