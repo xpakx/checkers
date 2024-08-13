@@ -43,6 +43,8 @@ services:
       - rabbitmq
     expose:
       - 8081
+    ports:
+      - "8081:8081"
     environment:
       - DEBUG_LEVEL=info
       - SERVER_PORT=8081
@@ -103,7 +105,10 @@ services:
     environment:
       - API_URL=gateway
       - API_PORT=8000
-    command: /bin/sh -c "envsubst '$${API_URL} $${API_PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
+        # maybe should move ws to gateway, but that's not vital for this project
+      - WS_URL=game
+      - WS_PORT=8081
+    command: /bin/sh -c "envsubst '$${API_URL} $${API_PORT} $${WS_URL} $${WS_PORT}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && nginx -g 'daemon off;'"
   engine:
     build: 
       context: ./game-engine

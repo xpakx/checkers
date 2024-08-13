@@ -33,11 +33,10 @@ export class WebsocketService {
   private subscriptionWaiting: boolean = false;
 
   constructor(private authService: AuthService) { 
-    this.apiUrl = environment.apiUrl.replace(/^http/, 'ws');
-    this.apiUrl = "ws://localhost:8081";
+    this.apiUrl = environment.wsUrl.replace(/^http/, 'ws');
     if (!this.apiUrl.startsWith("ws")) {
       let frontendUrl = window.location.origin.replace(/^http/, 'ws');
-      this.apiUrl = frontendUrl + environment.apiUrl;
+      this.apiUrl = frontendUrl + environment.wsUrl;
     }
     console.log(this.apiUrl);
   }
