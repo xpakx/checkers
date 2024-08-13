@@ -63,6 +63,9 @@ services:
       - DEBUG_LEVEL=info
       - SERVER_PORT=8000
       - FRONTEND=http://localhost:8001
+      - GATEWAY_ROUTES_MAIN=http://main:8080;/game,/authenticate,/register,/refresh
+        # this doesn't work, as gateway do not support websocket
+      - GATEWAY_ROUTES_GAME=http://game:8081;/app,/topic,/play
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: 'rabbitmq'
