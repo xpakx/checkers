@@ -4,7 +4,7 @@ use axum::{body::{to_bytes, Body, Bytes}, extract::{Request, State}, http::{Head
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{info, debug};
+use tracing::{info, debug, error};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
@@ -22,17 +22,8 @@ async fn main() {
     info!("Created reqwest client.");
 
     info!("Configuring services.");
-    let mut services: Vec<ServiceConfig> = config.services;
-    services.push(ServiceConfig { path: String::from("/game"), host: String::from("http://localhost"), port: 8080 });
-    services.push(ServiceConfig { path: String::from("/authenticate"), host: String::from("http://localhost"), port: 8080 });
-    services.push(ServiceConfig { path: String::from("/register"), host: String::from("http://localhost"), port: 8080 });
-    services.push(ServiceConfig { path: String::from("/refresh"), host: String::from("http://localhost"), port: 8080 });
-
-    services.push(ServiceConfig { path: String::from("/app"), host: String::from("http://localhost"), port: 8081 });
-    services.push(ServiceConfig { path: String::from("/topic"), host: String::from("http://localhost"), port: 8081 });
-    services.push(ServiceConfig { path: String::from("/play"), host: String::from("http://localhost"), port: 8081 });
-
-    let state = AppState { client, services };
+    debug!("registered paths: {:?}", config.services);
+    let state = AppState { client, services: config.services };
     let origins = [config.frontend.parse().unwrap(),];
     let cors = CorsLayer::new()
         .allow_origin(origins)
@@ -135,7 +126,7 @@ struct AppState {
     services: Vec<ServiceConfig>
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, Debug)]
 struct ServiceConfig {
     path: String,
     host: String,
@@ -188,7 +179,11 @@ fn load_config() -> ConfigFin {
             (Some(value), None) => value,
             (None, None) => String::from("http://localhost:4200"),
         },
-        services: config.services,
+        services: match(config.services.len(), env_config.services.len()) {
+            (_, x) if x > 0 => env_config.services,
+            (x, _) if x > 0 => config.services,
+            (_, _) => default_services(),
+        }
     }
 }
 
@@ -224,6 +219,51 @@ fn load_env_config() -> Config {
             Ok(env) => Some(env),
             _ => None,
         },
-        services: vec![],
+        services: env_services(),
     }
+}
+
+fn default_services() -> Vec<ServiceConfig> {
+    let mut services: Vec<ServiceConfig> = Vec::new();
+    services.push(ServiceConfig { path: String::from("/game"), host: String::from("http://localhost"), port: 8080 });
+    services.push(ServiceConfig { path: String::from("/authenticate"), host: String::from("http://localhost"), port: 8080 });
+    services.push(ServiceConfig { path: String::from("/register"), host: String::from("http://localhost"), port: 8080 });
+    services.push(ServiceConfig { path: String::from("/refresh"), host: String::from("http://localhost"), port: 8080 });
+
+    services.push(ServiceConfig { path: String::from("/app"), host: String::from("http://localhost"), port: 8081 });
+    services.push(ServiceConfig { path: String::from("/topic"), host: String::from("http://localhost"), port: 8081 });
+    services.push(ServiceConfig { path: String::from("/play"), host: String::from("http://localhost"), port: 8081 });
+    services
+}
+
+fn env_services() -> Vec<ServiceConfig> {
+    let mut services: Vec<ServiceConfig> = Vec::new();
+    for (key, value) in env::vars() {
+        if !key.starts_with("GATEWAY_ROUTES_") { continue; }
+        let parts = value.split(";");
+        let parts: Vec<&str> = parts.collect();
+        if parts.len() != 2 {
+            error!("Service host should be separated from paths by ';', but found: {}", key);
+            continue;
+        }
+        let Some((host, port)) = parts[0].rsplit_once(":") else {
+            error!("Service host should have port specified, but found: {}", key);
+            continue;
+        };
+        let Ok(port): Result<usize, _> = port.parse() else {
+            error!("Service host should have port specified as number, but found: {}", port);
+            continue;
+        };
+        let paths = parts[1].split(",");
+
+        for path in paths {
+            error!("mapping {} to {}:{}", path, host, port);
+            services.push(ServiceConfig {
+                host: String::from(host), 
+                port,
+                path: String::from(path), 
+            });
+        }
+    }
+    services
 }
