@@ -48,6 +48,7 @@ services:
       - SERVER_PORT=8081
       - JWT_SECRET=password
       - RABBIT_URL=amqp://guest:guest@rabbitmq:5672
+      - REDIS_URL=redis://default:password@cache:6379
   gateway:
     build: 
       context: ./gateway/
